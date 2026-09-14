@@ -761,12 +761,17 @@ repo (`mcp_server/`, `infra/mcp.tf`) as a reference/for potential future
 revival, but should not be extended or treated as a maintained component.
 `mcp_server/README.md` and the directory-layout note above carry the same
 notice. The deployed AWS Lambda + Function URL + IAM user + SSM parameter
-(see "Real deployment" above) are being torn down via
-`terraform destroy -target=...` for the `mcp.tf`-owned resources, once
-confirmed, since there's no reason to keep them running unused even though
-a idle Lambda's steady-state cost is close to zero (pay-per-invocation;
-the only always-on cost is negligible CloudWatch Logs storage from past
-invocations).
+(see "Real deployment" above) are being **left running, deliberately**:
+checked `infra/mcp.tf` for real cost drivers (no NAT gateway, no VPC, no
+provisioned/reserved concurrency) and confirmed an idle Lambda + Function
+URL costs effectively $0/month (pay-per-invocation; the only always-on
+cost is negligible CloudWatch Logs storage from past invocations). The one
+non-cost argument for tearing it down -- the Function URL is a public,
+unauthenticated (`authorization_type = "NONE"`) endpoint with no one
+maintaining it -- was raised and the user chose to leave it as-is rather
+than destroy it, since the sole reason under consideration (cost) doesn't
+apply. Revisit with `terraform destroy -target=<mcp.tf resources>` if that
+changes.
 
 ## Not yet done
 
