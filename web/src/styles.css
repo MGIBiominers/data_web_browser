@@ -1,0 +1,242 @@
+/* ---------------------------------------------------------------------
+   Design tokens -- "specimen catalog"
+   Subject: a catalog of processed ALS/neurodegeneration sequencing
+   datasets. Modeled on natural-history specimen records / herbarium
+   sheets: each study is a record with a catalog number (accession),
+   collected material (summary), and condition (processed format).
+   Cool stone tones (not the cliche warm cream), hairline card borders
+   instead of shadows, sage as the one accent, ochre reserved for an
+   actual state (not-yet-processed), never decorative.
+   --------------------------------------------------------------------- */
+:root {
+  --stone: #eeeee7;
+  --card: #faf9f5;
+  --ink: #2b2a26;
+  --ink-dim: #6d6a5f;
+  --line: #d6d4c8;
+  --sage: #6b7a5e;
+  --sage-wash: #e7ebe2;
+  --ochre: #9c7a3c;
+  --ochre-wash: #f1e9d8;
+
+  --font-display: "Piazzolla", Georgia, serif;
+  --font-ui: "Libre Franklin", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--stone);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+/* ---------- Header ---------- */
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.2rem 1.75rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.app-header h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin: 0;
+}
+.catalog-meta {
+  color: var(--ink-dim);
+  font-size: 0.78rem;
+  text-align: right;
+  line-height: 1.4;
+}
+.catalog-meta strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.app-body { display: flex; }
+
+/* ---------- Sidebar ---------- */
+.filter-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 1.25rem 1.1rem;
+  border-right: 1px solid var(--line);
+  height: calc(100vh - 68px);
+  overflow-y: auto;
+  background: var(--card);
+}
+.search-box {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  margin-bottom: 0.65rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  background: var(--stone);
+  color: var(--ink);
+}
+.search-box:focus { outline: 1px solid var(--sage); outline-offset: 1px; }
+.result-count-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.result-count { color: var(--ink-dim); font-size: 0.8rem; }
+.clear-filters-button {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--sage);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.clear-filters-button:disabled { color: var(--ink-dim); text-decoration: none; cursor: default; }
+
+.facet-group { border-bottom: 1px solid var(--line); }
+.facet-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+}
+.facet-group-header:focus-visible { outline: 1px solid var(--sage); outline-offset: 2px; }
+.facet-toggle-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem; height: 1rem;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+  flex-shrink: 0;
+}
+.facet-group-label { font-size: 0.85rem; flex: 1; }
+.facet-selected-count {
+  background: var(--sage);
+  color: var(--card);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 0.05rem 0.35rem;
+}
+.facet-options { max-height: 220px; overflow-y: auto; padding: 0.1rem 0 0.7rem 1.6rem; }
+.facet-option { display: flex; align-items: baseline; gap: 0.45rem; font-size: 0.82rem; margin-bottom: 0.3rem; cursor: pointer; line-height: 1.35; }
+.facet-option input { margin-top: 0.2rem; accent-color: var(--sage); }
+
+/* ---------- Main table ---------- */
+.app-main { flex: 1; overflow-x: auto; padding: 1.25rem 1.75rem; }
+
+.study-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.study-table th {
+  text-align: left; padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--ink-dim);
+  color: var(--ink-dim); font-weight: 500; font-size: 0.78rem;
+}
+.study-table td { padding: 0.65rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.study-row { cursor: pointer; }
+.study-row:hover { background: var(--sage-wash); }
+.not-processed { color: var(--ochre); font-style: italic; }
+.study-title { font-family: var(--font-display); font-weight: 500; font-size: 1rem; }
+.study-id {
+  display: inline-block; margin-top: 0.25rem;
+  font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim);
+  border: 1px solid var(--line); padding: 0.05rem 0.35rem;
+}
+.samples-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.empty-row { text-align: center; color: var(--ink-dim); padding: 2.5rem; }
+
+.loading, .error-banner { padding: 4rem 2rem; text-align: center; color: var(--ink-dim); font-family: var(--font-ui); }
+
+/* ---------- Detail overlay (specimen record card) ---------- */
+.study-detail-overlay {
+  position: fixed; inset: 0; background: rgba(43, 42, 38, 0.5);
+  display: flex; align-items: flex-start; justify-content: center; padding: 3rem 1rem;
+  overflow-y: auto;
+}
+.study-detail {
+  background: var(--card); border-radius: 0; padding: 2rem 2.25rem;
+  max-width: 880px; width: 100%; position: relative;
+  border: 1px solid var(--line);
+}
+.close-button {
+  position: absolute; top: 1.1rem; right: 1.25rem; border: none; background: none;
+  font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--ink-dim);
+  font-family: var(--font-ui);
+}
+.close-button:hover { color: var(--ink); }
+.study-detail h2 {
+  font-family: var(--font-display); font-weight: 500; font-size: 1.5rem;
+  margin: 0 0 0.35rem; padding-right: 2rem; line-height: 1.25;
+}
+.study-detail h3 {
+  font-family: var(--font-ui); font-size: 0.92rem;
+  color: var(--ink); font-weight: 600;
+  margin: 1.6rem 0 0.6rem; padding-top: 0.9rem; border-top: 1px solid var(--line);
+}
+.study-meta { color: var(--ink-dim); display: flex; align-items: center; gap: 0.9rem; margin-bottom: 0.9rem; font-size: 0.88rem; }
+.study-meta a { color: var(--sage); }
+.catalog-number {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.03em;
+  border: 1px solid var(--line); padding: 0.15rem 0.45rem; color: var(--ink-dim);
+}
+.study-summary { font-family: var(--font-display); font-size: 1rem; line-height: 1.65; max-width: 66ch; }
+.study-accessions {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink-dim);
+  margin: 0.9rem 0;
+}
+.study-notes {
+  font-size: 0.85rem; line-height: 1.5;
+  background: var(--stone); border-left: 2px solid var(--ochre);
+  padding: 0.65rem 0.9rem;
+}
+
+.format-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.7rem 0 0.9rem; }
+.format-badge {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--sage-wash); color: var(--sage);
+  border: 1px solid var(--sage);
+}
+.format-badge-none {
+  background: var(--ochre-wash); color: var(--ochre); border-color: var(--ochre);
+  font-family: var(--font-ui); font-style: italic;
+}
+
+.file-table, .sample-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.5rem; }
+.file-table th, .sample-table th {
+  text-align: left; padding: 0.4rem; color: var(--ink-dim); font-weight: 500;
+  border-bottom: 1px solid var(--ink-dim);
+}
+.file-table td, .sample-table td { padding: 0.4rem; border-bottom: 1px solid var(--line); text-align: left; }
+.file-table td:first-child, .sample-table td:first-child { font-family: var(--font-mono); font-size: 0.78rem; }
+.sample-table-wrap { max-height: 300px; overflow-y: auto; border: 1px solid var(--line); }
+.sample-table-truncated { padding: 0.5rem; color: var(--ink-dim); font-size: 0.78rem; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

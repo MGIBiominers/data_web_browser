@@ -1,0 +1,445 @@
+{
+  "generated_at": "2026-09-09T23:30:14Z",
+  "source_root": "/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS",
+  "studies": [
+    {
+      "study_id": "Bryce-Smith2025_GSE296714",
+      "journal": "Nature neuroscience",
+      "year": "2025",
+      "title": "TDP-43 loss induces cryptic polyadenylation in ALS/FTD [humphrey-i3-cortical]",
+      "pmid": null,
+      "doi": "10.1038/s41593-025-02050-w",
+      "bioproject": null,
+      "gse": [
+        "GSE296714"
+      ],
+      "cellxgene_collection": null,
+      "synapse": null,
+      "assay_types": [
+        "bulk RNA-seq"
+      ],
+      "primary_route": "GEO",
+      "notes": "12 samples. Group: ALS_TDP43. Contents: i3-cortical neurons, TDP-43 loss (Humphrey); n=12; cryptic-polyadenylation RNA-seq \u2014 key KD comparator. Backfilled 2026-09-06 from studies/Bryce-Smith2025_GSE296714/README.md header (row was missing from studies.tsv despite study having a real directory since its original addition).",
+      "summary": "This study used bulk RNA-seq of iPSC-derived (i3) cortical neurons with TDP-43 loss to characterize cryptic alternative polyadenylation (APA) events, comparing TDP-43-depleted cells against controls. The authors developed a bioinformatic pipeline to detect alternative last exons, 3'UTR extensions, and intronic polyadenylation, finding that TDP-43 binding sites are enriched at these cryptic APA loci and that TDP-43 can both repress and enhance such events. These cryptic APA categories were also validated in postmortem ALS and FTD brain tissue, and complementary SLAM-seq and ribosome profiling data showed that different cryptic APA types have distinct effects on transcript stability and translation. This dataset serves as a key TDP-43 knockdown comparator for cryptic-polyadenylation analyses in ALS/FTD.",
+      "n_samples": 12,
+      "organisms": [
+        "Homo sapiens"
+      ],
+      "disease_statuses": [
+        "Control",
+        "TDP-43 knockdown"
+      ],
+      "tissues": [
+        "iPSC-derived cortical neuron"
+      ],
+      "abstract": null,
+      "download": {
+        "phase": null,
+        "note": null
+      },
+      "conversion": {
+        "phase": "converted",
+        "note": "Section 9: GSE296714 bulk RNA-seq (12 samples) converted -- crosswalk via replicate number against CTRL-N/TDP-N raw columns vs title Control-N/Knockdown-N suffix (TDP confirmed as the real knockdown token, not KD). Real production data verified on /lts."
+      },
+      "verification": {
+        "phase": null,
+        "note": null
+      },
+      "alignment": {
+        "phase": null,
+        "note": "not_started - this role only covers OFC_APA_CellGenomics2025 and Pineda2024_Cell for now"
+      },
+      "processed_files": [
+        {
+          "name": "Bryce-Smith2025_GSE296714_bulk_GSE296714_counts.parquet",
+          "bytes": 39987884,
+          "category": "data",
+          "sha256": null,
+          "s3_key": null
+        },
+        {
+          "name": "Bryce-Smith2025_GSE296714_bulk_GSE296714_counts.tsv.gz",
+          "bytes": 1154468,
+          "category": "data",
+          "sha256": null,
+          "s3_key": null
+        },
+        {
+          "name": "Bryce-Smith2025_GSE296714_bulk_GSE296714_gene_id_map.tsv",
+          "bytes": 2092572,
+          "category": "data",
+          "sha256": null,
+          "s3_key": null
+        },
+        {
+          "name": "Bryce-Smith2025_GSE296714_bulk_GSE296714_metadata.tsv",
+          "bytes": 3035,
+          "category": "data",
+          "sha256": null,
+          "s3_key": null
+        },
+        {
+          "name": "conversion_log.md",
+          "bytes": 1158,
+          "category": "doc",
+          "sha256": null,
+          "s3_key": null
+        }
+      ],
+      "available_externally": false,
+      "s3_prefix": null,
+      "access_restricted": false,
+      "readme_body": "## Summary\n\nThis study used bulk RNA-seq of iPSC-derived (i3) cortical neurons with TDP-43 loss to characterize cryptic alternative polyadenylation (APA) events, comparing TDP-43-depleted cells against controls. The authors developed a bioinformatic pipeline to detect alternative last exons, 3'UTR extensions, and intronic polyadenylation, finding that TDP-43 binding sites are enriched at these cryptic APA loci and that TDP-43 can both repress and enhance such events. These cryptic APA categories were also validated in postmortem ALS and FTD brain tissue, and complementary SLAM-seq and ribosome profiling data showed that different cryptic APA types have distinct effects on transcript stability and translation. This dataset serves as a key TDP-43 knockdown comparator for cryptic-polyadenylation analyses in ALS/FTD.\n\n## Notes\n\nGroup: ALS_TDP43. From public_datasets_used.csv cross-reference. Citation: Bryce-Smith S et al. (2025) Nature neuroscience. doi:10.1038/s41593-025-02050-w | Contents: i3-cortical neurons, TDP-43 loss (Humphrey); n=12; cryptic-polyadenylation RNA-seq \u2014 key KD comparator\n\n## Samples\n\nn_samples_or_datasets: 12",
+      "series_summaries": [
+        {
+          "accession": "GSE296714",
+          "title": "TDP-43 loss induces cryptic polyadenylation in ALS/FTD [humphrey-i3-cortical]",
+          "summary": "Nuclear depletion and cytoplasmic aggregation of the RNA-binding protein TDP-43 is the hallmark of ALS, occurring in over 97% of cases. A key consequence of TDP-43 nuclear loss is the de-repression of cryptic exons. Whilst TDP-43 regulated cryptic splicing is increasingly well catalogued, cryptic alternative polyadenylation (APA) events, which define the 3\u2019 end of last exons, have been largely overlooked, especially when not associated with novel upstream splice junctions. We developed a bioinformatic pipeline to reliably identify distinct APA event types: alternative last exons (ALE), 3\u2019UTR extensions (3\u2019Ext) and \u2018 composite \u2019 intronic polyadenylation (IPA) events. We identified novel neuronal cryptic APA sites induced by TDP-43 loss of function by systematically applying our pipeline to a compendium of publicly available and in house datasets. We find that TDP-43 binding sites and target motifs are enriched at these cryptic events and that TDP-43 can have both repressive and enhancing action on APA. Importantly, all categories of cryptic APA can also be identified in ALS and FTD post mortem brain regions with TDP-43 proteinopathy underlining their potential disease relevance. RNA-seq and Ribo-seq analyses indicate that distinct cryptic APA categories have different downstream effects on transcript and translation. Intriguingly, cryptic 3\u2019Exts occur in multiple transcription factors, such as ELK1 , SIX3, and TLX1, and lead to an increase in RNA stability. 3\u2019Exts are localised to the cytoplasm and neurites and translated leading to an increase in wild-type protein levels. In summary, we demonstrate that TDP-43 nuclear depletion induces a novel category of cryptic RNA processing events and we expand the palette of TDP-43 loss consequences by showing this can also lead to an increase in normal protein translation.",
+          "overall_design": "short-read bulk RNA-sequencing of day 30 IPSC-derived cortical neurons with and without TDP-43 knockdown (6 controls, 6 TDP-43 knockdowns)"
+        }
+      ],
+      "conversion_log_raw": "# Conversion log \u2014 Bryce-Smith2025_GSE296714\n\n**Date:** 2026-08-24\n\n## Bryce-Smith2025_GSE296714_bulk_GSE296714_counts.parquet\n- **Source file(s):** GSE296714_gene_counts.humphrey_i3_cortical.csv.gz\n- **Library/version:** pandas 2.3.3\n- **Filtering applied:** none \u2014 counts as deposited by original authors\n- **Rows x cols before:** 61126 x 12\n- **Rows x cols after:** 12 x 61126\n- **Notes:** Raw counts matrix columns (CTRL-1, CTRL-2, CTRL-3, ...) use tokens 'CTRL-N' / 'TDP-N' that do NOT literally match samples.json `title` -- crosswalked via replicate number N against title suffix '- Control N' / '- Knockdown N' (verified 1:1 for all 12 GSM records and all 12 columns; the knockdown token is confirmed 'TDP', not 'KD'). Table is indexed by GSM accession (sample_id); original column header preserved as `source_column`, and samples.json `title` (which carries the Control/Knockdown distinction -- no separate genotype/treatment field encodes it in this study) preserved as its own column. Fields null for every record in the source data (genotype, disease_status, timepoint_or_age, treatment, sex, batch) are carried through as 'NA', not omitted.\n",
+      "qc_report": []
+    },
+    {
+      "study_id": "HNSCC_Pembrolizumab_dbGaP",
+      "journal": null,
+      "year": null,
+      "title": null,
+      "pmid": null,
+      "doi": null,
+      "bioproject": null,
+      "gse": [],
+      "cellxgene_collection": null,
+      "synapse": null,
+      "assay_types": [],
+      "primary_route": null,
+      "notes": "SKIPPED - dbGaP controlled-access (phs002864), requires authorized data access request",
+      "summary": null,
+      "n_samples": 0,
+      "organisms": [],
+      "disease_statuses": [],
+      "tissues": [],
+      "abstract": null,
+      "download": {
+        "phase": "not_started",
+        "note": "Skipped per user decision (dbGaP-gated, requires access/DUA not available in this pipeline)."
+      },
+      "conversion": {
+        "phase": "out_of_scope",
+        "note": "skipped per user decision - dbGaP controlled access"
+      },
+      "verification": {
+        "phase": null,
+        "note": "not_queued - no per-study verification pass recorded yet"
+      },
+      "alignment": {
+        "phase": null,
+        "note": "not_started - this role only covers OFC_APA_CellGenomics2025 and Pineda2024_Cell for now"
+      },
+      "processed_files": [],
+      "available_externally": false,
+      "s3_prefix": null,
+      "access_restricted": true,
+      "readme_body": null,
+      "series_summaries": [],
+      "conversion_log_raw": null,
+      "qc_report": []
+    },
+    {
+      "study_id": "Zelic2025_Immunity",
+      "journal": "Immunity",
+      "year": "2025",
+      "title": "Single-cell transcriptomic and functional studies identify glial state changes and a role for inflammatory RIPK1 signaling in ALS pathogenesis",
+      "pmid": null,
+      "doi": "10.1016/j.immuni.2025.02.024",
+      "bioproject": "PRJNA1212752;PRJNA1211983;PRJNA1211982;PRJNA1213761",
+      "gse": [
+        "GSE287439",
+        "GSE287257",
+        "GSE287256",
+        "GSE287569"
+      ],
+      "cellxgene_collection": null,
+      "synapse": null,
+      "assay_types": [
+        "scRNA-seq (iPSC tri-culture)",
+        "snRNA-seq (spinal cord)",
+        "scRNA-seq (mouse SOD1)",
+        "bulk RNA-seq (human spinal cord)"
+      ],
+      "primary_route": "GEO",
+      "notes": "GSE287256 is bulk RNA-seq companion, not single-cell.",
+      "summary": "This study combined single-nucleus RNA sequencing of postmortem ALS spinal cords, single-cell profiling of SOD1G93A ALS mouse spinal cords, and human iPSC-derived motor neuron/astrocyte/microglia tri-cultures to characterize glial state changes in ALS. Comparison of ALS versus control spinal cord tissue revealed glial populations with increased inflammatory and activation marker expression, with many signals converging on receptor-interacting protein kinase 1 (RIPK1) and the necroptosis pathway. Pharmacological inhibition of RIPK1 kinase activity in SOD1G93A mice delayed symptom onset and motor impairment and altered glial responses, while iPSC tri-cultures were used to identify secreted biomarkers of RIPK1 activation that were also modulated by RIPK1 inhibition in CSF from ALS patients. Together, the findings implicate inflammatory RIPK1 signaling and ALS-enriched glial states as contributors to disease pathogenesis.",
+      "n_samples": 46,
+      "organisms": [
+        "Homo sapiens",
+        "Mus musculus"
+      ],
+      "disease_statuses": [
+        "ALS",
+        "Control"
+      ],
+      "tissues": [
+        "SOD1G93A spinal cord",
+        "cervical spinal cord"
+      ],
+      "abstract": null,
+      "download": {
+        "phase": null,
+        "note": null
+      },
+      "conversion": {
+        "phase": "converted",
+        "note": "3 scRNA h5ad (46487/114161/15854 obs) + 1 bulk parquet+tsv table; GSE287256 bulk GSM crosswalk unresolvable, fields set to literal UNRESOLVED_GSM_MAPPING. BATCH-AWARE DecontX re-run 2026-08-26 (Section 8a, Slurm job 45868465, superseding the earlier non-batch-aware run): all 3 series run independently, batch_obs_column='sample_id' (default -- 10/12/12 real distinct GSM captures per series, verified not degenerate), background=None, cluster labels=None (no native cell-type column). Contamination ranges: triculture [0.0000, 1.0000] mean 0.1463, ALS_spinal_cord_human [0.0000, 0.9989] mean 0.0536, SOD1_mouse [0.0000, 0.9997] mean 0.0404. Structural verify PASSED (all 3), neurodegen-commons validate PASSED (3/3). Copied scratch->lts."
+      },
+      "verification": {
+        "phase": "verified",
+        "note": "3 scRNA h5ad + 1 bulk table structurally verified 2026-07-17: obs/var shapes match conversion_log.md exactly; normalized obs columns present; bulk table UNRESOLVED_GSM_MAPPING marker confirmed present for all 12 rows as documented."
+      },
+      "alignment": {
+        "phase": null,
+        "note": "not_started - this role only covers OFC_APA_CellGenomics2025 and Pineda2024_Cell for now"
+      },
+      "processed_files": [
+        {
+          "name": "Zelic2025_Immunity_ALS_spinal_cord_human.h5ad",
+          "bytes": 4607478452,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_ALS_spinal_cord_human.h5ad"
+        },
+        {
+          "name": "Zelic2025_Immunity_SOD1_mouse.h5ad",
+          "bytes": 564682197,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_SOD1_mouse.h5ad"
+        },
+        {
+          "name": "Zelic2025_Immunity_bulk_GSE287256_counts.parquet",
+          "bytes": 12999705,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_bulk_GSE287256_counts.parquet"
+        },
+        {
+          "name": "Zelic2025_Immunity_bulk_GSE287256_counts.tsv.gz",
+          "bytes": 1246015,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_bulk_GSE287256_counts.tsv.gz"
+        },
+        {
+          "name": "Zelic2025_Immunity_bulk_GSE287256_gene_symbol_map.tsv",
+          "bytes": 410912,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_bulk_GSE287256_gene_symbol_map.tsv"
+        },
+        {
+          "name": "Zelic2025_Immunity_bulk_GSE287256_metadata.tsv",
+          "bytes": 3851,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_bulk_GSE287256_metadata.tsv"
+        },
+        {
+          "name": "Zelic2025_Immunity_triculture.h5ad",
+          "bytes": 2724304601,
+          "category": "data",
+          "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "s3_key": "processed/Zelic2025_Immunity/Zelic2025_Immunity_triculture.h5ad"
+        },
+        {
+          "name": "commons_validate_report.json",
+          "bytes": 4241,
+          "category": "metadata",
+          "sha256": null,
+          "s3_key": null
+        },
+        {
+          "name": "conversion_log.md",
+          "bytes": 4955,
+          "category": "doc",
+          "sha256": null,
+          "s3_key": null
+        }
+      ],
+      "available_externally": true,
+      "s3_prefix": "processed/Zelic2025_Immunity/",
+      "access_restricted": false,
+      "readme_body": "## Summary\n\nThis study combined single-nucleus RNA sequencing of postmortem ALS spinal cords, single-cell profiling of SOD1G93A ALS mouse spinal cords, and human iPSC-derived motor neuron/astrocyte/microglia tri-cultures to characterize glial state changes in ALS. Comparison of ALS versus control spinal cord tissue revealed glial populations with increased inflammatory and activation marker expression, with many signals converging on receptor-interacting protein kinase 1 (RIPK1) and the necroptosis pathway. Pharmacological inhibition of RIPK1 kinase activity in SOD1G93A mice delayed symptom onset and motor impairment and altered glial responses, while iPSC tri-cultures were used to identify secreted biomarkers of RIPK1 activation that were also modulated by RIPK1 inhibition in CSF from ALS patients. Together, the findings implicate inflammatory RIPK1 signaling and ALS-enriched glial states as contributors to disease pathogenesis.\n\n## Notes\n\nGSE287256 is bulk RNA-seq companion, not single-cell.\n\n## Samples\n\nn_samples_or_datasets: 46",
+      "series_summaries": [
+        {
+          "accession": "GSE287439",
+          "title": "Single cell RNAseq of iPSC tri-cultures treated with necroptosis inducer",
+          "summary": "Transcriptomic analysis of iPSC tri-culture (microglia, neurons, astrocytes) stimulated with Tnf, Smac, and Zvad (TSZ) to trigger necroptosis pathway activation, in the presence or absence of a Ripk1 inhibitor",
+          "overall_design": "Cells were pre-treated for 1 hour with 1 \u03bcM Smac mimetic LCL161 (Selleck Chem, S7009), 20 \u03bcM zVAD-fmk (Enzo Life Sciences, ALX-260-020), and 1 \u03bcM RIPK1 inhibitor GSK\u2019547 prior to a 4 hour incubation with 50 ng/mL recombinant human TNF (R&D Systems, 210-TA). Four hours after treatment, cells were collected and sequenced using the 10x Genomics platform."
+        },
+        {
+          "accession": "GSE287257",
+          "title": "Spinal cord single-nuclei RNA sequencing of human ALS spinal cords [ALS human snRNAseq]",
+          "summary": "Transcriptomic analysis of postmortem cervical spinal cord samples from 8 people with ALS (6 sporadic and 2 familial cases) and 4 age-matched non-neurological controls using snRNA-seq",
+          "overall_design": "Spinal cords were acquired from the NIH brain biobank, nuclei were isolated by FACS, and sequenced using 10x Genomics and Illumina platforms."
+        },
+        {
+          "accession": "GSE287256",
+          "title": "Bulk RNA sequencing of human ALS spinal cords",
+          "summary": "There remains a poor understanding of cell-specific responses in the human ALS spinal cord, including differences in cell type composition, changes in cell state, and contribution of various cell types to neuroinflammation.",
+          "overall_design": "Transcriptomic analysis of postmortem cervical spinal cord samples from 8 people with ALS (6 sporadic and 2 familial cases) and 4 age-matched non-neurological controls"
+        },
+        {
+          "accession": "GSE287569",
+          "title": "Single cell RNAseq of SOD1 mouse spinal cords",
+          "summary": "Sequencing was performed to better understand the role of neuroinflammation and glial RIPK1 signaling in ALS pathogenesis in the SOD1G93A transgenic mouse model.",
+          "overall_design": "Starting on postnatal day 70, before noticeable motor deficits, female mice were treated prophylactically with the tool compound GSK\u2019547 (RIPK1i), a highly selective CNS-penetrant RIPK1 kinase inhibitor. The inhibitor was initially dosed in chow and as motor symptoms became more severe, RIPK1i was administered via oral gavage. Spinal cords were removed at day 120 for analysis."
+        }
+      ],
+      "conversion_log_raw": "# Conversion log \u2014 Zelic2025_Immunity\n\n**Date:** 2026-07-16\n\n## Zelic2025_Immunity_triculture.h5ad\n- **Source file(s):** GSM8745655_triculture_s1_filtered_feature_bc_matrix.h5, GSM8745656_triculture_s2_filtered_feature_bc_matrix.h5, GSM8745657_triculture_s3_filtered_feature_bc_matrix.h5, GSM8745658_triculture_s4_filtered_feature_bc_matrix.h5, GSM8745659_triculture_s5_filtered_feature_bc_matrix.h5, GSM8745660_triculture_s6_filtered_feature_bc_matrix.h5, GSM8745661_triculture_s7_filtered_feature_bc_matrix.h5, GSM8745662_triculture_s8_filtered_feature_bc_matrix.h5, GSM8745663_triculture_s9_filtered_feature_bc_matrix.h5, GSM8745664_triculture_s10_filtered_feature_bc_matrix.h5\n- **Library/version:** scanpy 1.11.5, anndata 0.12.19\n- **Filtering applied:** none \u2014 CellRanger-filtered counts as deposited\n- **Rows x cols before:** 46487 x varies per GSM before inner join\n- **Rows x cols after:** 46487 x 36601\n- **Notes:** 10 per-GSM 10x CellRanger filtered_feature_bc_matrix.h5 files concatenated (inner join on genes) into one object for series GSE287439. No filtering applied beyond CellRanger's own 'filtered' output -- raw counts as deposited by the original authors.\n\n## Zelic2025_Immunity_ALS_spinal_cord_human.h5ad\n- **Source file(s):** GSM8742363_29_control_filtered_feature_bc_matrix.h5, GSM8742364_32_control_filtered_feature_bc_matrix.h5, GSM8742365_35_control_filtered_feature_bc_matrix.h5, GSM8742366_37_control_filtered_feature_bc_matrix.h5, GSM8742367_39_ALS_filtered_feature_bc_matrix.h5, GSM8742368_40_ALS_filtered_feature_bc_matrix.h5, GSM8742369_41_ALS_filtered_feature_bc_matrix.h5, GSM8742370_42_ALS_filtered_feature_bc_matrix.h5, GSM8742371_44_ALS_filtered_feature_bc_matrix.h5, GSM8742372_45_ALS_filtered_feature_bc_matrix.h5, GSM8742373_46_ALS_filtered_feature_bc_matrix.h5, GSM8742374_47_ALS_filtered_feature_bc_matrix.h5\n- **Library/version:** scanpy 1.11.5, anndata 0.12.19\n- **Filtering applied:** none \u2014 CellRanger-filtered counts as deposited\n- **Rows x cols before:** 114161 x varies per GSM before inner join\n- **Rows x cols after:** 114161 x 36601\n- **Notes:** 12 per-GSM 10x CellRanger filtered_feature_bc_matrix.h5 files concatenated (inner join on genes) into one object for series GSE287257. No filtering applied beyond CellRanger's own 'filtered' output -- raw counts as deposited by the original authors.\n\n## Zelic2025_Immunity_SOD1_mouse.h5ad\n- **Source file(s):** GSM8748142_SOD1_s1_filtered_feature_bc_matrix.h5, GSM8748143_SOD1_s2_filtered_feature_bc_matrix.h5, GSM8748144_SOD1_s3_filtered_feature_bc_matrix.h5, GSM8748145_SOD1_s4_filtered_feature_bc_matrix.h5, GSM8748146_SOD1_s5_filtered_feature_bc_matrix.h5, GSM8748147_SOD1_s6_filtered_feature_bc_matrix.h5, GSM8748148_SOD1_s7_filtered_feature_bc_matrix.h5, GSM8748149_SOD1_s8_filtered_feature_bc_matrix.h5, GSM8748150_SOD1_s9_filtered_feature_bc_matrix.h5, GSM8748151_SOD1_s10_filtered_feature_bc_matrix.h5, GSM8748152_SOD1_s11_filtered_feature_bc_matrix.h5, GSM8748153_SOD1_s12_filtered_feature_bc_matrix.h5\n- **Library/version:** scanpy 1.11.5, anndata 0.12.19\n- **Filtering applied:** none \u2014 CellRanger-filtered counts as deposited\n- **Rows x cols before:** 15854 x varies per GSM before inner join\n- **Rows x cols after:** 15854 x 32285\n- **Notes:** 12 per-GSM 10x CellRanger filtered_feature_bc_matrix.h5 files concatenated (inner join on genes) into one object for series GSE287569. No filtering applied beyond CellRanger's own 'filtered' output -- raw counts as deposited by the original authors.\n\n## Zelic2025_Immunity_bulk_GSE287256_counts.parquet\n- **Source file(s):** GSE287256_ALS_bulkRNAseq_results_bulk_counts_normalized.csv.gz\n- **Library/version:** pandas 2.3.3\n- **Filtering applied:** none \u2014 normalized counts as deposited by original authors\n- **Rows x cols before:** 18135 x 14\n- **Rows x cols after:** 12 x 18135\n- **Notes:** Column headers in the source CSV (165_S165, 166_S166, 167_S167, ...) do NOT correspond to any GSM title, donor ID, or other field published in samples.json, series_metadata.json, or the live GEO record for this series (checked 2026-07-16, including a direct GEO lookup) -- no verifiable crosswalk to the 12 GSM accessions exists. Per-sample fields (genotype, disease_status, cell_line_or_donor, treatment, sex, timepoint_or_age, batch) are set to the literal string 'UNRESOLVED_GSM_MAPPING' rather than guessed or silently omitted. Fields verified identical across all 12 GSM records (study_id, accession, assay_type, sample_source, organism, tissue_or_cell_type, platform, source_doi_or_pmid) are attached normally. CAVEAT (Section 9.3): this series' only deposited file is named '..._bulk_counts_normalized.csv.gz' and its values are non-integer -- these are the original authors' own normalized values (no raw-integer-count alternative was ever deposited for GSE287256), NOT raw counts, despite being written to the _counts table since that is genuinely the only matrix this deposit provides.\n",
+      "qc_report": [
+        {
+          "path": "/scratch/rmlab/rmlab_shared3/azamat/tools/test_h5ad/Zelic2025_Immunity/Zelic2025_Immunity_ALS_spinal_cord_human.h5ad",
+          "problems": [
+            "no obs column resolves to 'cell_type' (looked for ['cell_type', 'celltype', 'cell_class', 'cellclass']...)"
+          ],
+          "warnings": [],
+          "n_cells": 114161,
+          "n_genes": 36601,
+          "obs_columns": [
+            "study_id",
+            "accession",
+            "sample_id",
+            "assay_type",
+            "sample_source",
+            "organism",
+            "cell_line_or_donor",
+            "genotype",
+            "disease_status",
+            "tissue_or_cell_type",
+            "timepoint_or_age",
+            "treatment",
+            "sex",
+            "platform",
+            "batch",
+            "is_filtered",
+            "source_doi_or_pmid",
+            "extra_disease_onset_site",
+            "extra_chip_antibody",
+            "decontx_contamination"
+          ],
+          "resolved_roles": {
+            "donor": "sample_id",
+            "cell_type": null,
+            "condition": "disease_status"
+          },
+          "counts_source": "X",
+          "x_max": 2201.0,
+          "ok": false,
+          "study_id": "Zelic2025_Immunity",
+          "overrides_used": {},
+          "not_applicable_present": {
+            "no obs column resolves to 'cell_type' (looked for ['cell_type', 'celltype', 'cell_class', 'cellclass']...)": "no native cell-type annotation; confirmed absent from obs, all 3 series (2026-08-25)"
+          },
+          "known_exceptions_present": [],
+          "unexpected_problems": [],
+          "passes_with_known_exceptions": true
+        },
+        {
+          "path": "/scratch/rmlab/rmlab_shared3/azamat/tools/test_h5ad/Zelic2025_Immunity/Zelic2025_Immunity_SOD1_mouse.h5ad",
+          "problems": [
+            "no obs column resolves to 'cell_type' (looked for ['cell_type', 'celltype', 'cell_class', 'cellclass']...)"
+          ],
+          "warnings": [],
+          "n_cells": 15854,
+          "n_genes": 32285,
+          "obs_columns": [
+            "study_id",
+            "accession",
+            "sample_id",
+            "assay_type",
+            "sample_source",
+            "organism",
+            "cell_line_or_donor",
+            "genotype",
+            "disease_status",
+            "tissue_or_cell_type",
+            "timepoint_or_age",
+            "treatment",
+            "sex",
+            "platform",
+            "batch",
+            "is_filtered",
+            "source_doi_or_pmid",
+            "extra_disease_onset_site",
+            "extra_chip_antibody",
+            "decontx_contamination"
+          ],
+          "resolved_roles": {
+            "donor": "sample_id",
+            "cell_type": null,
+            "condition": "disease_status"
+          },
+          "counts_source": "X",
+          "x_max": 4850.0,
+          "ok": false,
+          "study_id": "Zelic2025_Immunity",
+          "overrides_used": {},
+          "not_applicable_present": {
+            "no obs column resolves to 'cell_type' (looked for ['cell_type', 'celltype', 'cell_class', 'cellclass']...)": "no native cell-type annotation; confirmed absent from obs, all 3 series (2026-08-25)"
+          },
+          "known_exceptions_present": [],
+          "unexpected_problems": [],
+          "passes_with_known_exceptions": true
+        },
+        {
+          "path": "/scratch/rmlab/rmlab_shared3/azamat/tools/test_h5ad/Zelic2025_Immunity/Zelic2025_Immunity_triculture.h5ad",
+          "problems": [
+            "no obs column resolves to 'cell_type' (looked for ['cell_type', 'celltype', 'cell_class', 'cellclass']...)"
+          ],
+          "warnings": [],
+          "n_cells": 46487,
+          "n_genes": 36601,
+          "obs_columns": [
+            "study_id",
+            "accession",
+            "sample_id",
+            "assay_type",
+            "sample_source",
+            "organism",
+            "cell_line_or_donor",
+            "genotype",
+            "disease_status",
+            "tissue_or_cell_type",
+            "timepoint_or_age",
+            "treatment",
+            "sex",
+            "platform",
+            "batch",
+            "is_filtered",
+            "source_doi_or_pmid",
+            "extra_disease_onset_site",
+            "extra_chip_antibody",
+            "decontx_contamination"
+          ],
+          "resolved_roles": {
+            "donor": "sample_id",
+            "cell_type": null,
+            "condition": "disease_status"
+          },
+          "counts_source": "X",
+          "x_max": 1391.0,
+          "ok": false,
+          "study_id": "Zelic2025_Immunity",
+          "overrides_used": {},
+          "not_applicable_present": {
+            "no obs column resolves to 'cell_type' (looked for ['cell_type', 'celltype', 'cell_class', 'cellclass']...)": "no native cell-type annotation; confirmed absent from obs, all 3 series (2026-08-25)"
+          },
+          "known_exceptions_present": [],
+          "unexpected_problems": [],
+          "passes_with_known_exceptions": true
+        }
+      ]
+    }
+  ]
+}
