@@ -7,8 +7,6 @@ const GROUP_LABELS = {
   tissue: 'Tissue',
   cell_type: 'Cell type',
   genotype: 'Genotype',
-  primary_route: 'Primary route',
-  journal: 'Journal',
 }
 
 // Collapsed by default -- landing on the page shows just the group headers
@@ -21,8 +19,6 @@ const GROUP_ORDER = [
   'tissue',
   'cell_type',
   'genotype',
-  'primary_route',
-  'journal',
 ]
 
 function FacetGroup({ groupKey, options, selected, onChange, expanded, onToggle }) {
@@ -95,6 +91,8 @@ export default function FilterSidebar({ facets, filters, onChange, onClearFilter
           onToggle={toggleGroup}
         />
       ))}
+
+      <a className="mcp-access-link" href="#mcp-access">See how to access MCP server</a>
     </aside>
   )
 }

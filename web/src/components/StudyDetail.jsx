@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { distinctFormats, formatLabel } from '../format.js'
+import { buildStudyContext } from '../copyContext.js'
 
 function formatBytes(bytes) {
   if (bytes == null) return ''
@@ -12,9 +14,23 @@ function formatBytes(bytes) {
   return `${n.toFixed(1)} ${units[i]}`
 }
 
-export default function StudyDetail({ study, samples, onClose }) {
+export default function StudyDetail({ study, samples, sourceRoot, onClose }) {
+  const [copied, setCopied] = useState(false)
+
   if (!study) return null
   const studySamples = samples.filter((s) => s.study_id === study.study_id)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildStudyContext(study, sourceRoot))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard access can fail (unsupported browser, permission denied) --
+      // silently doing nothing beyond this is fine, the button just won't
+      // show "Copied" and the user can select/copy the text manually.
+    }
+  }
   const dataFiles = (study.processed_files || []).filter((f) => f.category === 'data')
   const formats = distinctFormats(study.processed_files)
   const catalogNumber = (study.gse || [])[0] || study.bioproject || study.cellxgene_collection || study.synapse || study.study_id
@@ -32,6 +48,9 @@ export default function StudyDetail({ study, samples, onClose }) {
           <span className="catalog-number">{catalogNumber}</span>
           <span>{study.journal} {study.year ? `(${study.year})` : ''}</span>
           {study.doi && <a href={`https://doi.org/${study.doi}`} target="_blank" rel="noreferrer">DOI</a>}
+          <button type="button" className="copy-context-button" onClick={handleCopy}>
+            {copied ? 'Copied' : 'Copy information for Claude'}
+          </button>
         </div>
 
         <div className="format-badges">

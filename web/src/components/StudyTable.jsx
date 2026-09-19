@@ -1,6 +1,7 @@
 import { distinctFormats } from '../format.js'
+import { matchedFacetValues } from '../facets.js'
 
-export default function StudyTable({ studies, onSelect }) {
+export default function StudyTable({ studies, filters, onSelect }) {
   return (
     <table className="study-table">
       <thead>
@@ -15,11 +16,19 @@ export default function StudyTable({ studies, onSelect }) {
       <tbody>
         {studies.map((s) => {
           const formats = distinctFormats(s.processed_files)
+          const matchTags = matchedFacetValues(s, filters)
           return (
             <tr key={s.study_id} onClick={() => onSelect(s.study_id)} className="study-row">
               <td>
                 <div className="study-title">{s.title || s.study_id}</div>
                 <div className="study-id">{s.study_id}</div>
+                {matchTags.length > 0 && (
+                  <div className="match-tags">
+                    {matchTags.map(({ group, value }) => (
+                      <span key={`${group}:${value}`} className="match-tag">{value}</span>
+                    ))}
+                  </div>
+                )}
               </td>
               <td>{(s.organisms || []).join(', ')}</td>
               <td>{(s.assay_types || []).join(', ')}</td>

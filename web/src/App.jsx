@@ -4,6 +4,9 @@ import { buildStudyFacets, filterStudies } from './facets.js'
 import FilterSidebar from './components/FilterSidebar.jsx'
 import StudyTable from './components/StudyTable.jsx'
 import StudyDetail from './components/StudyDetail.jsx'
+import McpAccessPage from './components/McpAccessPage.jsx'
+
+const MCP_ACCESS_HASH = '#mcp-access'
 
 const EMPTY_FILTERS = {
   organism: [],
@@ -12,8 +15,6 @@ const EMPTY_FILTERS = {
   tissue: [],
   cell_type: [],
   genotype: [],
-  primary_route: [],
-  journal: [],
 }
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [selectedId, setSelectedId] = useState(null)
+  const [hash, setHash] = useState(window.location.hash)
 
   useEffect(() => {
     Promise.all([fetchCatalog(), fetchSamples()])
@@ -33,6 +35,12 @@ export default function App() {
       .catch((err) => setError(err.message))
   }, [])
 
+  useEffect(() => {
+    const onHashChange = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
   const studies = catalog?.studies || []
   const facets = useMemo(() => buildStudyFacets(studies), [studies])
   const filtered = useMemo(() => filterStudies(studies, filters, query), [studies, filters, query])
@@ -40,6 +48,10 @@ export default function App() {
     () => studies.find((s) => s.study_id === selectedId) || null,
     [studies, selectedId],
   )
+
+  if (hash === MCP_ACCESS_HASH) {
+    return <McpAccessPage onBack={() => { window.location.hash = '' }} />
+  }
 
   if (error) {
     return (
@@ -75,10 +87,15 @@ export default function App() {
           resultCount={filtered.length}
         />
         <main className="app-main">
-          <StudyTable studies={filtered} onSelect={setSelectedId} />
+          <StudyTable studies={filtered} filters={filters} onSelect={setSelectedId} />
         </main>
       </div>
-      <StudyDetail study={selected} samples={samples} onClose={() => setSelectedId(null)} />
+      <StudyDetail
+        study={selected}
+        samples={samples}
+        sourceRoot={catalog.source_root}
+        onClose={() => setSelectedId(null)}
+      />
     </div>
   )
 }
