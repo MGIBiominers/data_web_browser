@@ -773,6 +773,190 @@ than destroy it, since the sole reason under consideration (cost) doesn't
 apply. Revisit with `terraform destroy -target=<mcp.tf resources>` if that
 changes.
 
+## MCP server reactivated in code, not yet redeployed (2026-09-18)
+
+The user decided the MCP server should be functional again, with one
+change: **it must never hand out a copy of any file** -- no presigned S3
+URLs, no manifests. `get_download_links` was removed and replaced with
+`get_data_locations`, which returns the real HTCF filesystem path a
+study's processed data lives at (`<source_root>/studies/<study_id>/processed/`,
+read straight out of the already-cached `catalog.json`'s own `source_root`
+field -- no new HTCF access needed from the Lambda). This is useful to
+someone with real HTCF filesystem access (a lab member, or a Claude Code
+session running on HTCF); it was never a way to fetch data *through* this
+server, so nothing is lost by never offering a URL.
+
+Removed along with it, since nothing needs it anymore: `s3_clients.py`'s
+`presign_client()` and the whole long-lived `mcp_presign` IAM
+user/SSM-parameter apparatus it depended on (`infra/mcp.tf` updated to
+match -- one execution role now, not two identities); the manifest
+threshold/TTL env vars; the `manifests/` S3 lifecycle rule. 6 of `mcp_server/`'s
+docstrings still referenced the removed tool by name (stale
+cross-references, e.g. "use get_download_links next") -- caught and fixed
+while answering an unrelated question about the sample-detail view.
+`mcp_server/README.md` and the directory-layout note above no longer carry
+the deprecation notice. 229/229 `mcp_server` tests pass.
+
+**Real discovery: this checkout's local Terraform state is gone.**
+Neither this repo's `infra/` nor the original scratchpad session that ran
+the first real `terraform apply` still has a `terraform.tfstate` file (the
+scratchpad's survived only as a stale provider cache, no state). Running
+`terraform apply` here blindly would make Terraform think none of these
+resources exist and try to create duplicates. Not resolved yet --
+flagged so no future session (including a later me) applies blindly.
+
+**Not yet deployed.** The rebuilt `mcp_server/build/` package exists
+locally (`./build.sh` already run) but was never pushed to the real Lambda
+-- the live function still runs the old `get_download_links` code as of
+this writing. Deploying for real needs either (a) direct `aws lambda
+update-function-code`/`update-function-configuration`/`iam put-role-policy`
+calls (bypassing Terraform given the state gap above), or (b) reconstructing
+Terraform state via `terraform import` first. Either way, an explicit
+go-ahead is needed before touching the live function -- not given yet.
+
+## HTCF metadata refresh: 41 -> 50 studies, plus a real parser bug fix (2026-09-19)
+
+`all_samples.tsv`/`studies.tsv` were updated on HTCF again (9 new study
+directories appeared). Rebuilt `catalog.json`/`samples.json` from the live
+collection the same way as the 2026-09-11 refresh (HTCF-side `python3.9
+build_catalog.py`, no `--bucket` since the web app never reads
+`available_externally`/`s3_key`) -- 50 studies, 6,192 samples. Copied into
+`web/public/data/` **locally only**, not deployed to Vercel yet (explicit
+instruction this round: make it locally, commit, don't push).
+
+**Real bug found and fixed while re-verifying an external review's claims
+(see next section) against this fresh data:** `sources.split_multi()`
+treated a cell as "no value" only on an *exact* case-insensitive match to
+`"NONE"`. `Pineda2024_Cell`'s `studies.tsv` `gse` cell is actually `"NONE
+(SRA-only deposit, no GEO series)"` -- close, but not an exact match, so
+the whole sentence became that study's sole `gse` list entry: a
+plausible-looking but fake accession that would break any accession-based
+join or parser downstream (exactly the failure mode the external review's
+A3 flagged, independently, against an earlier snapshot). Fixed by matching
+`value.upper().startswith("NONE")` instead of exact equality -- verified
+directly against the real rebuilt catalog: `Pineda2024_Cell.gse` is now
+`[]`, correctly.
+
+**New filter option: "(not recorded)".** Turned an information-only
+finding (see "How many studies have no entries..." earlier this session)
+into an actual feature: `facets.js` now adds a `(not recorded)` sentinel
+option to any facet where at least one study has a genuinely empty array
+for that field (currently: disease status and tissue -- organism/assay
+type never are). Selecting it matches studies with zero entries, via the
+same OR-within-group/AND-across-group logic every other facet value
+already uses (`NOT_RECORDED` is just one more value `matchesArrayFacet`'s
+`.some()` can match against, with `arr.length === 0` as its special-case
+comparison). Deliberately distinct from a literal `"Unknown"` value, which
+means the source data explicitly recorded "unknown" -- not that nothing
+was recorded at all. `matchedFacetValues` (the row-tag feature) handles it
+the same way, so a matched study missing that field shows a
+`(not recorded)` tag rather than no tag at all.
+
+## External MCP server review, 2026-09-19: findings verified, plan drafted, nothing implemented yet
+
+A third-party hands-on review of the (reactivated) MCP server
+(`/Users/azamat/Downloads/als_server_review.md`) came in the same day as
+the HTCF refresh above -- worth noting its own numbers (42 studies) predate
+both the 2026-09-11 canonical-vocabulary columns and today's 41->50 study
+jump, so some specific counts it cites are stale even though the
+underlying *problems* mostly aren't. Per explicit instruction: suggestions
+and a plan only here, no `mcp_server/` code changes.
+
+### Re-verified against the current, fresh 50-study catalog
+
+- **A3's accession bugs are still real.** `Liu2019_CellReports_GSE126543`'s
+  own `gse` list is `["GSE126541", "GSE126542"]` -- the accession in the
+  study_id itself (GSE126543) appears in neither. `Pineda2024_Cell`'s fake
+  "NONE (SRA-only deposit...)" pseudo-accession was real and just got fixed
+  above (a pipeline/parsing bug on this repo's side, not an MCP-layer
+  issue). Both are still open, real problems.
+- 2 studies still have no `year`; 30 of 50 have no `pmid` (Asano2025
+  reproduced exactly as the review describes: a DOI that resolves, `pmid`
+  still null).
+- Tissue/disease sparsity is real but the review's raw framing overstates
+  it slightly: of the ~15-21 studies with an empty *tissue* field, most
+  (verified individually) correctly have that information in `cell_type`
+  instead (in-vitro/cultured material has no anatomical tissue -- see the
+  2026-09-11 vocabulary section) rather than missing it outright. Disease
+  status has no such explanation -- empty there really does mean nothing
+  was recorded.
+
+### Assessment of the review's own proposals (D1-D10), and where I disagree
+
+Mostly right, roughly in the priority order given. Two places worth a
+different call before anyone implements this:
+
+- **B1 ("prose-wrapped JSON") needs to NOT simply become "structured
+  content instead of text"**, unlike the review's framing suggests.
+  `tool_response.build_result()` already sets `structured_content` on
+  every response (see the 2026-09-10 "fourth real bug" section) --
+  *and deliberately, redundantly* also embeds the same JSON in the text
+  block, because a real connected client (`als-datasets-mgi`) was
+  confirmed to not surface `structured_content` at all. If this reviewer's
+  own client is doing the same string-surgery workaround the review
+  describes, that's independent evidence for the same finding, not a
+  reason to remove the text-embedded copy -- doing so would silently
+  break that real client again. The right fix is narrower: make the
+  *text* format easier to parse (e.g. fence the JSON block, or put
+  resource-link mentions somewhere that can't land mid-parse) while
+  keeping both channels populated. Worth confirming directly whether the
+  reviewer's client can already read `structured_content` before
+  concluding text-embedding should go away at all.
+- **D7's collapse to one `access` enum** is good but should fold in the
+  actual current state, not the review's slightly-earlier one: today it's
+  effectively `htcf_processed_path` (via `get_data_locations`, works
+  regardless of S3 state) vs. nothing, since presigned downloads no longer
+  exist at all post-reactivation -- `public_s3` may not even be a
+  meaningful enum value anymore depending on whether the S3 mirror concept
+  survives the "no downloads" decision. Worth deciding that scope question
+  before building the enum.
+
+### Proposed phased plan (not implemented)
+
+**Phase 1 -- cheap, high-value, no schema changes:**
+1. D1 `describe_catalog`/facet endpoint (fixes B2, B3's exploratory-cost
+   complaint, and doubles as A2's "what are the valid filters" discovery
+   mechanism).
+2. A2: reject unknown `search_samples` parameters explicitly (or echo
+   `ignored_parameters`) -- small, contained, prevents silent
+   over-return.
+3. A1: `offset`/`limit` on `search_samples` and `get_study_overview`'s
+   sample block -- the current 100/50 caps make the 3 largest cohorts
+   (~68% of the collection by sample count) partially unreachable.
+4. Fix the two verified accession bugs (Liu2019, and confirm no other
+   `studies.tsv` rows have the same class of problem) -- a `studies.tsv`
+   edit on HTCF, not an MCP-layer fix; needs the right accession confirmed
+   against the actual paper/GEO record before touching it, same care the
+   2026-09-11 vocabulary work used.
+
+**Phase 2 -- real value, more design work:**
+5. D3 `genotype` as a first-class, normalized `search_samples` filter
+   (HGNC symbol + free-text allele) -- for an ALS collection this is
+   arguably a bigger gap than anything else on the list, since mutation
+   status is the primary stratifier and today it only exists in per-sample
+   detail calls.
+6. D4 `get_design_table(study_id)` -- directly answers B5's Asano2025
+   example (3x2x3 design invisible in the lean view).
+7. D7 access-model collapse, once the scope question above is resolved.
+8. B7's `assay_types` normalization (16 raw strings across 50 studies,
+   including compound values no filter will match) -- same kind of
+   reviewed, not-mechanical vocabulary work as the 2026-09-11 disease/tissue/
+   genotype pass, ideally done the same way (a dedicated pass with
+   explicit user sign-off on ambiguous merges), not invented ad hoc here.
+
+**Phase 3 -- bigger scope, real design decisions needed first:**
+9. D5 gene-level query/presence -- highest ceiling, but needs a real
+   design decision (precomputed presence bitmap vs. live per-sample
+   query) before estimating effort.
+10. D8 `build_cohort` -- natural endpoint once D3/D4/D5 exist, not before.
+11. D9 curation tags (`ALS cohort` vs `comparator` vs `off-topic`) and
+    `get_request_status` for the download-request queue -- both
+    self-contained, could happen anytime, just lower urgency than the
+    above.
+12. D6 structured file inventory (promote `conversion_note` prose to typed
+    fields) -- valuable but touches the conversion pipeline's own output
+    format, bigger blast radius than anything else on this list.
+
 ## Not yet done
 
 - **Switching the live app from bundled data to a live S3 fetch.** The web
