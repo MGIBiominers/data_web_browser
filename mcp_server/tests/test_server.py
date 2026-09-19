@@ -24,7 +24,6 @@ import os
 
 os.environ.setdefault("CATALOG_SOURCE", "local")
 os.environ.setdefault("BUCKET_NAME", "test-bucket")
-os.environ.setdefault("PRESIGN_CREDENTIALS_PARAM", "test-param")
 
 from starlette.applications import Starlette
 
@@ -32,7 +31,7 @@ import server
 
 EXPECTED_TOOLS = {
     "search_studies", "get_study_overview", "search_samples",
-    "get_sample_details", "explain_data_file", "get_download_links",
+    "get_sample_details", "explain_data_file", "get_data_locations",
     "request_dataset_download",
 }
 EXPECTED_RESOURCE_URIS = {
@@ -50,7 +49,7 @@ def test_server_name():
 
 def test_instructions_mention_key_tools_and_resources():
     instructions = server.mcp.instructions
-    for name in ("search_studies", "search_samples", "get_download_links", "request_dataset_download"):
+    for name in ("search_studies", "search_samples", "get_data_locations", "request_dataset_download"):
         assert name in instructions
     assert "pipeline-docs://" in instructions
 

@@ -19,7 +19,7 @@ from mcp.server.mcpserver import MCPServer
 
 from tools import (
     explain_data_file,
-    get_download_links,
+    get_data_locations,
     get_sample_details,
     get_study_overview,
     request_dataset_download,
@@ -30,16 +30,20 @@ from tools import (
 mcp = MCPServer(
     "als-dataset-catalog",
     instructions=(
-        "Tools for finding and downloading processed ALS/neurodegeneration "
-        "sequencing datasets from the BioMiners EXTERNAL_DATASETS collection. "
-        "Start with search_studies or search_samples to find relevant data, "
-        "use get_study_overview/get_sample_details for full context on a "
-        "specific match, explain_data_file to understand what's actually "
-        "inside a given processed file before downloading it, and "
-        "get_download_links to get an S3 URL once you know what you want. "
-        "See the pipeline-docs:// resources for how this collection's files "
-        "are structured and processed. Use request_dataset_download to ask "
-        "for a dataset that isn't in the collection yet."
+        "Tools for finding processed ALS/neurodegeneration sequencing "
+        "datasets from the BioMiners EXTERNAL_DATASETS collection. This "
+        "server never transfers file contents -- it only ever points to "
+        "where data already lives on HTCF, for someone with HTCF "
+        "filesystem access (or a Claude Code session running there) to "
+        "read it directly. Start with search_studies or search_samples to "
+        "find relevant data, use get_study_overview/get_sample_details for "
+        "full context on a specific match, explain_data_file to understand "
+        "what's actually inside a given processed file, and "
+        "get_data_locations to get its real HTCF path once you know what "
+        "you want. See the pipeline-docs:// resources for how this "
+        "collection's files are structured and processed. Use "
+        "request_dataset_download to ask for a dataset that isn't in the "
+        "collection yet."
     ),
 )
 
@@ -49,7 +53,7 @@ for fn in (
     search_samples.search_samples,
     get_sample_details.get_sample_details,
     explain_data_file.explain_data_file,
-    get_download_links.get_download_links,
+    get_data_locations.get_data_locations,
     request_dataset_download.request_dataset_download,
 ):
     mcp.tool()(fn)

@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 rm -rf build
 mkdir -p build
 
-pip install \
+python3.12 -m pip install \
   --platform manylinux2014_x86_64 \
   --implementation cp \
   --python-version 3.12 \

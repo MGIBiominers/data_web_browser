@@ -40,13 +40,14 @@ def search_studies(
         A list of study summaries (not full detail -- call get_study_overview
         for that): study_id, title, summary, journal, year, primary
         accession, sample count, organisms, disease_statuses, tissues,
-        assay_types, access_restricted, and two related-but-different
-        fields -- data_formats (which formats this study's data has been
-        processed into, e.g. h5ad/parquet, regardless of whether it's been
-        published here yet) and available_externally (whether it's actually
-        downloadable via get_download_links right now). A non-empty
-        data_formats does NOT imply available_externally=true -- check that
-        field explicitly before telling someone a study is downloadable.
+        assay_types, access_restricted, and data_formats (which formats
+        this study's data has been processed into, e.g. h5ad/parquet).
+        available_externally is a separate, narrower signal about this
+        collection's own public S3 mirror, NOT about whether
+        get_data_locations will work -- get_data_locations reads a study's
+        real HTCF location directly, independent of whether it's ever been
+        mirrored to S3, so a non-empty data_formats is what actually
+        predicts whether get_data_locations has something to return.
         Attached resource links point to the format-structure reference(s)
         relevant to the formats present across the returned studies.
     """

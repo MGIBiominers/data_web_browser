@@ -43,8 +43,8 @@ _UNPUBLISHED_STUDY = {
     # Real bug this guards against: processed_files existing on HTCF (so
     # data_formats is non-empty) does NOT mean the study was ever synced to
     # S3 -- s3_key is only set once build_catalog.py's live S3 check
-    # actually finds it there. A study can have real local processed files
-    # and still be entirely unavailable through get_download_links.
+    # actually finds it there. available_externally must reflect that S3
+    # sync state specifically, not merely "processed_files is non-empty".
     "processed_files": [
         {"name": "study.h5ad", "category": "data", "bytes": 100, "s3_key": None},
     ],

@@ -27,7 +27,7 @@ def search_samples(
     span several studies, and this finds them directly rather than requiring
     you to check each study one at a time. The study_id values in the
     results tell you which studies to pass to get_study_overview or
-    get_download_links next.
+    get_data_locations next.
 
     For full per-sample detail (including raw, non-normalized fields like
     the original GEO characteristics), use get_sample_details on the

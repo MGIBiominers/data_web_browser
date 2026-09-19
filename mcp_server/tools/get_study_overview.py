@@ -40,11 +40,11 @@ def get_study_overview(study_ids: list[str]) -> CallToolResult:
         data isn't available through this server; the description is still
         shown so you know the study exists and why it's gated. `processed_files`
         lists every file this study has been converted to, each with its own
-        "downloadable" flag -- a file can exist (has a format/size) without
-        being downloadable yet if it hasn't been published to S3 here; check
-        available_externally (study-level) or a file's own "downloadable"
-        flag before telling someone get_download_links will work for it.
-        Sample lists are capped at 100 (see samples_truncated/total_samples)
+        "downloadable" flag -- this tracks whether the file has also been
+        published to this collection's public S3 mirror, which is unrelated
+        to get_data_locations (that reads a study's real HTCF path directly
+        and works regardless of S3 mirror state). Sample lists are capped
+        at 100 (see samples_truncated/total_samples)
         -- use search_samples with study_id set for the full set if a study
         has more. Attached resource links point to the format-structure and
         sample-metadata references relevant to the returned studies.
