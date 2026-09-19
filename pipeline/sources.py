@@ -272,11 +272,20 @@ def split_multi(value: str | None) -> list[str]:
     a naive split on every comma breaks it into "scRNA-seq (iPSC-MN" and
     "ddSEQ + 10x)", an orphaned '(' in one fragment and an orphaned ')' in
     the other.
+
+    A cell starting with "NONE" (case-insensitive), with or without an
+    explanatory parenthetical, is also treated as empty -- real example
+    (studies.tsv `gse`, 2026-09-19, flagged in an external server review):
+    `Pineda2024_Cell`'s value is "NONE (SRA-only deposit, no GEO series)",
+    not the bare "NONE" an exact-match check would catch. Without this,
+    that whole sentence becomes the study's sole `gse` list entry -- a
+    plausible-looking but fake accession that breaks any accession-based
+    join/parser downstream.
     """
     if not value:
         return []
     value = value.strip()
-    if not value or value.upper() == "NONE":
+    if not value or value.upper().startswith("NONE"):
         return []
 
     parts = []

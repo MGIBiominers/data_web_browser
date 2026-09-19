@@ -505,6 +505,13 @@ class TestSplitMulti:
     def test_split_multi_none_mixed_case(self):
         assert split_multi("NoNe") == []
 
+    def test_split_multi_none_with_explanation(self):
+        """Real bug, external server review 2026-09-19: Pineda2024_Cell's
+        studies.tsv `gse` cell is "NONE (SRA-only deposit, no GEO series)" --
+        an exact "NONE" match doesn't catch this, and the whole sentence
+        used to land in the study's gse list as a fake accession."""
+        assert split_multi("NONE (SRA-only deposit, no GEO series)") == []
+
     def test_split_multi_semicolon_delimited(self):
         result = split_multi("study1;study2;study3")
         assert result == ["study1", "study2", "study3"]
