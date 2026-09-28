@@ -957,6 +957,65 @@ different call before anyone implements this:
     fields) -- valuable but touches the conversion pipeline's own output
     format, bigger blast radius than anything else on this list.
 
+## S3 policy: metadata only, no processed files (2026-09-28)
+
+Decided going forward: `processed/` in the S3 bucket (`rmlab-als-dataset-portal`)
+never gets anything uploaded to it again -- S3 holds `metadata/catalog.json`/
+`samples.json` only, and every study's actual processed data lives on HTCF
+exclusively (`get_data_locations` already assumed this; now it's policy, not
+just this server's own behavior). The ~7.4GB of `Zelic2025_Immunity` files
+left over from the original real-deployment test (2026-09-09, before the
+"no downloads" direction existed) were deleted from `processed/` for real
+(`aws s3 rm --recursive`, confirmed empty after via `aws s3 ls`) -- nothing
+else was under that prefix, verified with `--summarize` before deleting
+(exactly 7 objects, all `Zelic2025_Immunity/*`).
+
+**Resolves the MCP review's B4/access-enum open question directly**: the
+`public_s3` distinction never needs a place in a future `access` enum --
+there's no longer a "was this mirrored to S3" state to represent at all,
+since nothing ever will be. If that enum work happens later (Phase 2 of the
+review plan), it's `access: htcf_only | not_yet_processed | restricted`,
+full stop.
+
+## Two-level (grouped) sidebar filtering (2026-09-28)
+
+The user's own request, motivated by `disease_status_canonical` now having
+12 distinct `ALS ...` values (`ALS`, `ALS (rapid progression)`, `ALS-FTD`,
+`ALS Spectrum MND`, ...) after HTCF's ongoing vocabulary work -- flat in the
+sidebar, that's 12 separate top-level checkboxes all starting with "ALS,"
+crowding out the other ~15 disease-status options. Wanted: select "ALS" as
+one umbrella entry, then optionally narrow to a specific one (e.g. "rapid
+progression") without it being a separate top-level item.
+
+**Deliberately zero changes to filter matching logic.** `facets.js` gained
+`FACET_GROUPS` (a hand-written, presentation-only grouping -- every child
+listed is a real, already-existing canonical value, not an invented
+taxonomy) and `buildFacetTree(key, options)`, which reshapes one facet's
+flat option list into `{standalone, groups}` for rendering. Selecting an
+umbrella checkbox just adds *all* its children to the same flat
+`filters[key]` array `filterStudies`/`matchesArrayFacet` already operate
+on -- unchecking specific children after that narrows the selection exactly
+the way manually checking only those children would. `FilterSidebar.jsx`
+renders this as a tri-state checkbox (unchecked / all-children-selected /
+some-children-selected, using the DOM's native `indeterminate` property,
+not just a CSS trick) with an expand toggle to reveal children.
+
+Grouped today: `disease_status` (`ALS` -- 12 children; `Control` -- 3;
+`FTD / FTLD` -- 2) and `tissue` (`Motor Cortex` -- 5 children; `Frontal
+Cortex` -- 3; `Spinal Cord` -- 5). **Deliberately not done for `genotype`**:
+unlike `ALS`/`Motor Cortex`, there's no existing umbrella value to group
+under (nothing named plain "FUS") -- building one means inventing a
+gene-symbol grouping from scratch, the same judgment-heavy work flagged as
+MCP review open question 1 (the `genotype` `symbol`/`allele` split). Doing
+it here first, ad hoc, would just create a second, possibly-inconsistent
+version of that same decision.
+
+Verified directly against the real (freshly rebuilt, 50-study) catalog:
+selecting the full `ALS` umbrella (all 12 children) matches 26 studies;
+narrowing to just `ALS (rapid progression)` drops that to 1 study
+(`Itou2024_scRNA_Zenodo`) -- confirming the narrowing actually narrows,
+not just relabels.
+
 ## Not yet done
 
 - **Switching the live app from bundled data to a live S3 fetch.** The web

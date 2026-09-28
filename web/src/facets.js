@@ -35,6 +35,50 @@ function distinct(values) {
   return Array.from(new Set(values.filter((v) => v !== null && v !== undefined && v !== ''))).sort()
 }
 
+// Two-level grouping for facets whose canonical values naturally cluster
+// under a broader umbrella -- e.g. disease_status_canonical now has 12
+// distinct "ALS ..." values (ALS, "ALS (rapid progression)", "ALS-FTD",
+// "ALS Spectrum MND", ...), which is exactly the collection's own
+// vocabulary, not a taxonomy invented here: every child listed below is a
+// real disease_status_canonical/tissues_canonical value that already
+// exists in the catalog (see the September vocabulary work + the
+// 2026-09-2x disease-progression additions). Grouping is presentation-only
+// -- it doesn't change what a value means or how filtering matches, only
+// how the sidebar organizes the checkboxes. A canonical value not listed
+// in any group here just stays a flat, ungrouped top-level option, same as
+// before this feature existed.
+//
+// Deliberately NOT done yet for genotype: unlike disease_status/tissue,
+// there's no existing "umbrella" value to group under (e.g. nothing named
+// plain "FUS" the way plain "ALS" exists) -- building one would mean
+// inventing a gene-symbol grouping from scratch, the kind of judgment call
+// that needs a dedicated reviewed pass (see DESIGN.md), not a quick
+// addition here.
+export const FACET_GROUPS = {
+  disease_status: {
+    ALS: [
+      'ALS', 'ALS (fast progression)', 'ALS (non-rapid progression)',
+      'ALS (rapid progression)', 'ALS (slow progression)', 'ALS (standard progression)',
+      'ALS + cognitive impairment', 'ALS Spectrum MND', 'ALS-FTD',
+      'ALS/FTD (pTDP-43 high)', 'ALS/FTD (pTDP-43 medium)', 'ALS/FTD (pTDP-43 negative)',
+      'Pre-symptomatic familial ALS carrier',
+    ],
+    Control: ['Control', 'Healthy Control', 'Non-Neurological Control'],
+    'FTD / FTLD': ['FTD', 'FTLD'],
+  },
+  tissue: {
+    'Motor Cortex': [
+      'Motor Cortex', 'Motor Cortex (BA4)', 'Motor Cortex (Lateral)',
+      'Motor Cortex (Medial)', 'Motor Cortex (Unspecified)',
+    ],
+    'Frontal Cortex': ['Frontal Cortex', 'Frontal Cortex (BA44)', 'Frontal Cortex (BA46)'],
+    'Spinal Cord': [
+      'Spinal Cord (Cervical)', 'Spinal Cord (Lumbar)', 'Spinal Cord (Thoracic)',
+      'Spinal Cord (Unspecified)', 'Spinal Cord (region unspecified)',
+    ],
+  },
+}
+
 export function buildStudyFacets(studies) {
   const facets = {}
   for (const [key, field] of Object.entries(FACET_FIELDS)) {
@@ -45,6 +89,28 @@ export function buildStudyFacets(studies) {
     facets[key] = options
   }
   return facets
+}
+
+// Reshapes one facet's flat option list into {standalone, groups} for
+// rendering -- groups per FACET_GROUPS above (only children actually
+// present in `options` are included, so a group never shows an option
+// nothing in the current catalog has), standalone for everything else
+// (ungrouped values, plus NOT_RECORDED, always shown flat).
+export function buildFacetTree(key, options) {
+  const groupConfig = FACET_GROUPS[key]
+  if (!groupConfig) return { standalone: options, groups: [] }
+
+  const grouped = new Set()
+  const groups = Object.entries(groupConfig)
+    .map(([label, members]) => {
+      const children = members.filter((v) => options.includes(v))
+      children.forEach((v) => grouped.add(v))
+      return { label, children }
+    })
+    .filter((g) => g.children.length > 0)
+
+  const standalone = options.filter((v) => !grouped.has(v))
+  return { standalone, groups }
 }
 
 function matchesArrayFacet(studyArray, selected) {
