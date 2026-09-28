@@ -32,7 +32,7 @@ import server
 EXPECTED_TOOLS = {
     "search_studies", "get_study_overview", "search_samples",
     "get_sample_details", "explain_data_file", "get_data_locations",
-    "request_dataset_download",
+    "request_dataset_download", "gene_presence", "build_cohort",
 }
 EXPECTED_RESOURCE_URIS = {
     "pipeline-docs://alignment_methodology",

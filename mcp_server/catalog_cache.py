@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 _BUCKET = os.environ.get("BUCKET_NAME")
 _CATALOG_KEY = os.environ.get("CATALOG_KEY", "metadata/catalog.json")
 _SAMPLES_KEY = os.environ.get("SAMPLES_KEY", "metadata/samples.json")
+_GENE_PRESENCE_KEY = os.environ.get("GENE_PRESENCE_KEY", "metadata/gene_presence.json")
 _LOCAL_SOURCE = os.environ.get("CATALOG_SOURCE") == "local"
 _LOCAL_DIR = Path(os.environ.get("CATALOG_LOCAL_DIR", "./fixtures"))
 
@@ -61,3 +62,32 @@ def get_study(study_id: str) -> dict | None:
         if study["study_id"] == study_id:
             return study
     return None
+
+
+def get_gene_presence() -> dict:
+    """Full gene_presence.json: {"genes": {symbol: [{study_id, filename,
+    id_type}, ...]}} -- built by pipeline/build_gene_presence.py, a
+    separate script from build_catalog.py since it needs to open real
+    processed data files (h5ad/parquet), not just small metadata.
+
+    Unlike catalog.json/samples.json, this is a newer, optional artifact --
+    a bucket with none published yet (or CATALOG_SOURCE=local without a
+    fixtures/gene_presence.json) returns an empty index rather than raising,
+    so gene_presence's own tool can report "not found" honestly instead of
+    the whole server erroring on an unrelated call.
+    """
+    if _LOCAL_SOURCE:
+        path = _LOCAL_DIR / Path(_GENE_PRESENCE_KEY).name
+        if not path.exists():
+            return {"genes": {}}
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    import botocore
+
+    try:
+        return _get_cached(_GENE_PRESENCE_KEY, "gene_presence")
+    except botocore.exceptions.ClientError as e:
+        if e.response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
+            logger.info("catalog_cache: gene_presence.json not published yet")
+            return {"genes": {}}
+        raise

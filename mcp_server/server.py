@@ -18,7 +18,9 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from tools import (
+    build_cohort,
     explain_data_file,
+    gene_presence,
     get_data_locations,
     get_sample_details,
     get_study_overview,
@@ -40,10 +42,13 @@ mcp = MCPServer(
         "full context on a specific match, explain_data_file to understand "
         "what's actually inside a given processed file, and "
         "get_data_locations to get its real HTCF path once you know what "
-        "you want. See the pipeline-docs:// resources for how this "
-        "collection's files are structured and processed. Use "
-        "request_dataset_download to ask for a dataset that isn't in the "
-        "collection yet."
+        "you want. gene_presence checks whether a gene was even measured "
+        "anywhere in the collection before you go looking for it; "
+        "build_cohort composes a filtered sample search with the files "
+        "needed to actually assemble that cohort's data. See the "
+        "pipeline-docs:// resources for how this collection's files are "
+        "structured and processed. Use request_dataset_download to ask for "
+        "a dataset that isn't in the collection yet."
     ),
 )
 
@@ -55,6 +60,8 @@ for fn in (
     explain_data_file.explain_data_file,
     get_data_locations.get_data_locations,
     request_dataset_download.request_dataset_download,
+    gene_presence.gene_presence,
+    build_cohort.build_cohort,
 ):
     mcp.tool()(fn)
 

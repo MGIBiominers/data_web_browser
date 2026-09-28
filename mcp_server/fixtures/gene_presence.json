@@ -1,0 +1,8 @@
+{
+  "genes": {
+    "STMN2": {"symbol": ["Zelic2025_Immunity", "Bryce-Smith2025_GSE296714"]},
+    "UNC13A": {"symbol": ["Zelic2025_Immunity"]},
+    "TARDBP": {"symbol": ["Zelic2025_Immunity", "Bryce-Smith2025_GSE296714"]},
+    "ENSG00000104435": {"ensembl_id": ["Zelic2025_Immunity"]}
+  }
+}

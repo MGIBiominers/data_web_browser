@@ -3,10 +3,11 @@
 Remote MCP server for the ALS EXTERNAL_DATASETS catalog: search studies and
 samples, get comprehensive study/sample detail, understand what's actually
 inside a specific processed file, get the real HTCF filesystem location of
-processed data (not a download -- see below), and request a dataset that
-isn't in the collection yet. See `../DESIGN.md`'s "MCP server" and "MCP
-server reactivated" sections for the full architecture and design
-decisions.
+processed data (not a download -- see below), check whether a gene was even
+measured anywhere in the collection, assemble a filtered cohort's files, and
+request a dataset that isn't in the collection yet. See `../DESIGN.md`'s
+"MCP server" and "MCP server reactivated" sections for the full architecture
+and design decisions.
 
 **This server never transfers file contents.** `get_data_locations` (added
 2026-09-18, replacing the earlier `get_download_links`) only ever returns
@@ -57,7 +58,52 @@ asyncio.run(main())
 `fixtures/catalog.json`/`fixtures/samples.json` are a trimmed real slice of
 the actual HTCF collection (3 studies: a normal single-cell+bulk study
 [Zelic2025_Immunity], a bulk-only study, and one dbGaP-restricted study) --
-not synthetic data.
+not synthetic data. `fixtures/gene_presence.json` is small hand-written
+data matching those same study_ids (the real one is 103MB -- see
+"Gene presence index" below for why it's not just a bigger fixture).
+`gene_presence` itself works fine with no `gene_presence.json` present at
+all -- `catalog_cache.get_gene_presence()` returns an empty index rather
+than erroring, so every other tool stays testable without it.
+
+## Gene presence index
+
+`gene_presence` is the one tool that doesn't read `catalog.json`/
+`samples.json` directly -- it reads a separate precomputed artifact,
+`metadata/gene_presence.json`, built by a **different** script,
+`pipeline/build_gene_presence.py`. That script needs a real scientific-
+Python environment (h5py + pyarrow, to open actual `.h5ad`/`.parquet` files
+and read their gene axis) -- `build_catalog.py`'s stdlib-only environment
+can't run it. On HTCF, use the same environment `conversion` already relies
+on:
+
+```bash
+/ref/rmlab/software/azamat/als_pipeline_env/bin/python3 pipeline/build_gene_presence.py \
+  --root /lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS \
+  --out gene_presence.json
+```
+
+Real numbers as of 2026-09-28: 78 processed files (h5ad + gene-level bulk
+parquet only -- transposable-element/splicing/transcript-level files are
+deliberately excluded, see the script's own docstring), 513,091 distinct
+gene identifiers / 592,533 (gene, study, id_type) entries / **103MB** of
+output, ~6 minutes wall time (almost entirely NFS I/O waiting on HTCF's
+filesystem, not CPU -- reading only each file's gene axis via `h5py`
+directly, never the actual expression matrix, is what keeps this feasible
+at all: the same read took 0.05s on a 4.6GB h5ad file). **A first version
+of this script was study-per-file rather than study-level, producing 512MB
+of output -- large enough that a parsed copy in Lambda's memory would have
+exceeded the function's own 512MB memory limit before answering a single
+query.** Collapsing to one entry per (gene, study, id_type) rather than
+(gene, file) fixed it (5x smaller); see the script's docstring for the
+full story.
+
+**Still worth a look before this goes live**: 103MB parsed into Python
+objects typically runs 1.5-2.5x larger in memory than its raw JSON size --
+close enough to the Lambda's current 512MB `memory_size`
+(`infra/mcp.tf`) to be worth bumping that up (e.g. to 1024MB) as part of
+whatever deploy actually publishes this artifact, rather than assuming
+it'll fit. Not yet a proven problem, just not proven safe either --
+nobody's actually run this inside the Lambda yet.
 
 ## Tests
 
@@ -65,7 +111,7 @@ not synthetic data.
 .venv/bin/python -m pytest tests/ -q
 ```
 
-229 tests as of this writing, all against real dependencies (`mcp`,
+250 tests as of this writing, all against real dependencies (`mcp`,
 `boto3`) with only their I/O-performing methods mocked -- see
 `conftest.py` for the sys.path setup that makes bare imports
 (`import catalog_cache`, `import search_studies`, etc.) resolve the same

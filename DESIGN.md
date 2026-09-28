@@ -1044,6 +1044,94 @@ is more correct than another. Verified the same way: full `bulk RNA-seq`
 umbrella matches 29 studies, narrowing to `bulk RNA-seq (mouse OPC)` alone
 drops to 1 (`Qki5_PNAS2024`).
 
+## `gene_presence` + `build_cohort`, and a real 5x-oversized-artifact bug (2026-09-28)
+
+Two of the review's Phase 3 items, pulled forward and built (per explicit
+instruction, ahead of the deferred Phase 1/2 items) -- `get_request_status`
+was explicitly dropped from scope first (it never transfers any data
+either, same as `request_dataset_download` itself, but wasn't seen as
+valuable enough to build).
+
+**`gene_presence(symbol)`** -- checks whether a gene was ever actually
+measured anywhere in the collection, and in which studies, before someone
+goes looking for it (the review's own example: one file has as few as
+~8,000 genes on a targeted panel, so a gene's absence can mean "never
+measured," not "not expressed"). Backed by a **new, separate pipeline
+script**, `pipeline/build_gene_presence.py` -- deliberately not folded into
+`build_catalog.py`, since it needs to open real processed data files
+(h5ad up to 4.6GB) rather than small text metadata, and needs a real
+scientific-Python environment (`h5py`/`pyarrow`) `build_catalog.py`'s
+stdlib-only environment doesn't have. Found and used the real environment
+`conversion` already relies on:
+`/ref/rmlab/software/azamat/als_pipeline_env`.
+
+Real findings that shaped the script, all verified directly against the
+collection before writing any code:
+- h5ad files store gene *symbols* directly as `var_names`.
+- Bulk parquet files are genuinely inconsistent -- some already have gene
+  symbols as column names, others have unversioned Ensembl gene IDs, and
+  only 7 of ~50 bulk files have a companion `*_gene_symbol_map.tsv` to
+  translate the latter. Detected per-file (checking whether most column
+  names match an Ensembl-ID pattern) rather than assumed from one fixed
+  rule.
+- Reading `var_names` via raw `h5py` (just `/var/_index`) rather than
+  `anndata.read_h5ad(backed="r")` matters a lot in practice: the h5py read
+  took 0.05s on a 4.6GB file; the anndata backed-mode equivalent (which
+  still eagerly reads all of `obs`/`var`) was slow enough over HTCF's
+  filesystem to time out a 100s SSH session on the same file.
+- Deliberately excludes non-gene-level feature files by filename pattern
+  (`_te_`/`_geneTE_` transposable elements, `_splicing` junction tables,
+  `_transcript_quant` transcript-level, `_smallrna_`) -- conflating any of
+  these with plain genes would make the tool's answer actively wrong, not
+  just incomplete.
+
+**Real bug, caught before shipping, not after:** the first version kept
+one `{study_id, filename, id_type}` entry per (gene, **file**) pair. Run
+against the real collection: 513,091 distinct identifiers, 3,031,716
+pairs, **512MB** of JSON -- large enough that a parsed-into-Python copy
+would have exceeded the Lambda's own 512MB memory limit before answering a
+single query, on a tool meant to be a cheap lookup. The redundancy was
+structural, not incidental: a study with 3 h5ad files sharing ~30K common
+genes was recording that gene 3 times over for one study. Fixed by
+collapsing to one `study_id` per (gene, id_type) -- a set while scanning,
+sorted list in the output -- and dropping per-file filenames from the
+index entirely (the review only ever asked for study-level presence, and
+`get_data_locations` already lists every file a study has once you know
+which study to look at). Result: 513,091 identifiers, 592,533 (gene,
+study, id_type) entries, **103MB** -- a 5x reduction. Verified correct
+against real biology, not just smaller: `STMN2`/`UNC13A`/`TARDBP`/`GAPDH`
+each resolve to ~25-27 studies; `Asano2025_GSE283507` correctly appears for
+`UNC13A`/`GAPDH` but not `STMN2`/`TARDBP` -- consistent with its own
+documented ~8,000-gene targeted panel not including those two.
+
+103MB is still worth a second look before this goes live -- parsed into
+Python objects it likely runs 1.5-2.5x larger in memory, close enough to
+the Lambda's current 512MB `memory_size` to be worth bumping (e.g. to
+1024MB) as part of whatever deploy actually publishes this artifact,
+rather than assuming it fits untested.
+
+**`build_cohort(filters...)`** -- composes a `search_samples`-style filter
+with `get_data_locations`-style file resolution in one call: matched
+samples grouped by study, each study's real HTCF directory, and every
+processed data file in it. Matches against the canonical vocabulary fields
+(`disease_status_canonical`/`tissue`/`genotype_canonical`) rather than the
+raw text `search_samples` matches against today -- deliberately
+inconsistent with `search_samples` for now, documented plainly in the
+docstring, and effectively previews what Phase 2 item 4a would bring to
+`search_samples` itself. Stated its own real limitation rather than
+guessing around it: the catalog doesn't record which specific file a
+sample's data is in when a study has more than one data file (e.g. Zelic's
+3 separate human/mouse/tri-culture h5ad files) -- every one of the study's
+files is listed, and whoever opens one still has to check its own
+obs/columns to confirm it's the right one.
+
+Both registered in `server.py` (9 tools total now), both fully tested
+(250 `mcp_server` tests, 291 pipeline tests, all passing) and synced to
+the HTCF mirror. **Neither is live** -- `gene_presence.json` hasn't been
+published to S3, and the Lambda still runs the pre-reactivation code (see
+"MCP server reactivated" above) -- both still pending the same explicit
+go-ahead before touching real AWS.
+
 ## Not yet done
 
 - **Switching the live app from bundled data to a live S3 fetch.** The web
