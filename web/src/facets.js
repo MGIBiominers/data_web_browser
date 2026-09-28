@@ -48,12 +48,12 @@ function distinct(values) {
 // in any group here just stays a flat, ungrouped top-level option, same as
 // before this feature existed.
 //
-// Deliberately NOT done yet for genotype: unlike disease_status/tissue,
-// there's no existing "umbrella" value to group under (e.g. nothing named
-// plain "FUS" the way plain "ALS" exists) -- building one would mean
-// inventing a gene-symbol grouping from scratch, the kind of judgment call
-// that needs a dedicated reviewed pass (see DESIGN.md), not a quick
-// addition here.
+// Deliberately NOT done for genotype: unlike disease_status/tissue/
+// assay_type, there's no existing "umbrella" value to group under (e.g.
+// nothing named plain "FUS" the way plain "ALS"/"bulk RNA-seq" exist) --
+// building one would mean inventing a gene-symbol grouping from scratch,
+// the kind of judgment call that needs a dedicated reviewed pass (see
+// DESIGN.md), not a quick addition here.
 export const FACET_GROUPS = {
   disease_status: {
     ALS: [
@@ -76,6 +76,25 @@ export const FACET_GROUPS = {
       'Spinal Cord (Cervical)', 'Spinal Cord (Lumbar)', 'Spinal Cord (Thoracic)',
       'Spinal Cord (Unspecified)', 'Spinal Cord (region unspecified)',
     ],
+  },
+  // Genuinely combined multi-assay values (e.g. "RNA-seq + ATAC-seq",
+  // "scRNA-seq/snRNA-seq") are deliberately left standalone below, not
+  // folded into a single-assay group -- they mix two assay types in one
+  // string, so no one parent is more correct than another.
+  assay_type: {
+    'bulk RNA-seq': [
+      'bulk RNA-seq', 'bulk RNA-seq (human)', 'bulk RNA-seq (human spinal cord)',
+      'bulk RNA-seq (mouse OPC)', 'bulk RNA-seq (siQKI iPSC-MN)',
+      'bulk RNA-seq (laser-capture microdissected motor neurons)',
+      'bulk RNA-seq (compartmental: axon vs soma)', 'short-read bulk RNA-seq',
+    ],
+    'scRNA-seq': [
+      'scRNA-seq', 'scRNA-seq (Smart-seq2, iPSC-MN)', 'scRNA-seq (iPSC tri-culture)',
+      'scRNA-seq (iPSC-MN)', 'scRNA-seq (iPSC-MN, ddSEQ + 10x)', 'scRNA-seq (mouse SOD1)',
+    ],
+    'snRNA-seq': ['snRNA-seq', 'snRNA-seq (spinal cord)'],
+    'long-read RNA-seq': ['long-read RNA-seq', 'long-read RNA-seq (Iso-Seq)'],
+    'snATAC-seq': ['snATAC-seq', 'snATAC-seq (multiome)'],
   },
 }
 

@@ -125,9 +125,29 @@ def build(
     # rather than silently dropping them from the catalog.
     study_ids = sorted(set(studies_tsv.keys()) | set(sources.list_study_ids(root)))
 
+    # Resolved once per study (not recomputed per field use below) so the
+    # same row backs both the corpus-wide assay_type canon build just below
+    # and the per-study record construction further down.
+    rows_by_study = {
+        study_id: studies_tsv.get(study_id) or sources.load_readme_header(root, study_id) or {}
+        for study_id in study_ids
+    }
+
+    # assay_types is a studies.tsv-level field (one cell per study, not
+    # aggregated from all_samples.tsv rows like disease_status/tissue above),
+    # but has the same real case-duplication problem -- e.g. "Bulk RNA-seq"
+    # (3 studies) vs "bulk RNA-seq" (20 studies) for the identical concept,
+    # confirmed directly against the real collection 2026-09-28. Canon built
+    # from every study's already-split values so it merges consistently
+    # regardless of which study a value is read from, same approach as
+    # disease_canon/tissue_canon above.
+    assay_type_canon = sources.build_case_insensitive_canon(
+        v for row in rows_by_study.values() for v in sources.split_multi(row.get("assay_types"))
+    )
+
     studies: list[StudyRecord] = []
     for study_id in study_ids:
-        row = studies_tsv.get(study_id) or sources.load_readme_header(root, study_id) or {}
+        row = rows_by_study[study_id]
         samples = grouped_samples.get(study_id, [])
         organisms = sorted(
             {sources.normalize_organism(s["organism"]) for s in samples if s.get("organism")}
@@ -205,7 +225,9 @@ def build(
                 gse=sources.split_multi(row.get("gse")),
                 cellxgene_collection=row.get("cellxgene_collection") or None,
                 synapse=row.get("synapse") or None,
-                assay_types=sources.split_multi(row.get("assay_types")),
+                assay_types=sorted({
+                    assay_type_canon.get(v, v) for v in sources.split_multi(row.get("assay_types"))
+                }),
                 primary_route=row.get("primary_route") or None,
                 notes=row.get("notes") or None,
                 # studies.tsv's own `summary` column is the primary source

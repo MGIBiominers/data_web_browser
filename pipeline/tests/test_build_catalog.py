@@ -401,6 +401,41 @@ class TestBuild:
 
     @patch('build_catalog._live_s3_state')
     @patch('build_catalog.sources')
+    def test_assay_types_case_folded_across_studies(self, mock_sources, mock_s3_state):
+        """Real bug, found 2026-09-28: 'Bulk RNA-seq' (3 studies) vs
+        'bulk RNA-seq' (20 studies) in the real collection -- a pure case
+        duplicate that used to show up as two separate values. assay_types
+        is a studies.tsv-level field (unlike disease_status/tissue, which
+        are aggregated from all_samples.tsv rows), so the canon here is
+        built from every study's row, not every sample."""
+        mock_s3_state.return_value = {}
+        mock_sources.load_studies_tsv.return_value = {
+            'study1': {'assay_types': 'Bulk RNA-seq'},
+            'study2': {'assay_types': 'bulk RNA-seq'},
+            'study3': {'assay_types': 'bulk RNA-seq'},
+        }
+        mock_sources.load_all_samples.return_value = []
+        mock_sources.samples_by_study.return_value = {}
+        mock_sources.load_status_json.return_value = {}
+        mock_sources.list_processed_files.return_value = []
+        mock_sources.get_study_phase.return_value = ('completed', None)
+        mock_sources.load_readme_abstract.return_value = None
+        mock_sources.normalize_organism.side_effect = lambda v: v
+        import sources as real_sources
+        mock_sources.split_multi.side_effect = real_sources.split_multi
+        mock_sources.build_case_insensitive_canon.side_effect = real_sources.build_case_insensitive_canon
+
+        result = build_catalog.build(Path('/root'), Path('/coord'))
+
+        by_id = {s.study_id: s for s in result.studies}
+        # Lowercase wins (2 occurrences vs 1) -- all three studies converge
+        # on the same casing rather than showing as two distinct facet values.
+        assert by_id['study1'].assay_types == ['bulk RNA-seq']
+        assert by_id['study2'].assay_types == ['bulk RNA-seq']
+        assert by_id['study3'].assay_types == ['bulk RNA-seq']
+
+    @patch('build_catalog._live_s3_state')
+    @patch('build_catalog.sources')
     def test_summary_prefers_studies_tsv_column(self, mock_sources, mock_s3_state):
         mock_s3_state.return_value = {}
         mock_sources.load_studies_tsv.return_value = {

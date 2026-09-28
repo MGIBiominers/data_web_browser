@@ -1016,6 +1016,34 @@ narrowing to just `ALS (rapid progression)` drops that to 1 study
 (`Itou2024_scRNA_Zenodo`) -- confirming the narrowing actually narrows,
 not just relabels.
 
+### `assay_type` grouping + a real case-duplicate bug fix (same day)
+
+Extending the grouping to `assay_type` surfaced a genuine bug, not just a
+presentation opportunity: `"Bulk RNA-seq"` (3 studies) and `"bulk RNA-seq"`
+(20 studies) were the same concept split into two separate top-level
+checkboxes by letter case alone -- `assay_types` never got the case-fold
+treatment `disease_status`/`tissue_or_cell_type` already have. Unlike those
+two (aggregated from `all_samples.tsv` sample rows), `assay_types` is a
+`studies.tsv`-*level* field -- one cell per study -- so `build_catalog.py`
+needed its own canon build from every study's row (via the same
+`sources.build_case_insensitive_canon`/`split_multi` helpers, just applied
+at the study-row level rather than the sample level). Fixed in `build()`,
+with a regression test (`test_assay_types_case_folded_across_studies`)
+confirming three studies using both castings converge on the majority
+casing. 28 distinct values post-fix (was 29).
+
+With that fixed, grouped the same way as disease_status/tissue: **bulk
+RNA-seq** (8 children -- `(human)`, `(human spinal cord)`, `(mouse OPC)`,
+`(siQKI iPSC-MN)`, `(laser-capture microdissected motor neurons)`,
+`(compartmental: axon vs soma)`, `short-read bulk RNA-seq`, plus the bare
+value), **scRNA-seq** (6), **snRNA-seq** (2), **long-read RNA-seq** (2),
+**snATAC-seq** (2). Genuinely combined multi-assay values (`RNA-seq +
+ATAC-seq`, `bulk RNA-seq + proteomics`, `scRNA-seq/snRNA-seq`) stay
+standalone -- they mix two assay types in one string, so no single parent
+is more correct than another. Verified the same way: full `bulk RNA-seq`
+umbrella matches 29 studies, narrowing to `bulk RNA-seq (mouse OPC)` alone
+drops to 1 (`Qki5_PNAS2024`).
+
 ## Not yet done
 
 - **Switching the live app from bundled data to a live S3 fetch.** The web
