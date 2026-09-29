@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock, call
+import gzip
 import json
 import sys
 
@@ -360,3 +361,107 @@ class TestStateManagement:
         assert samp == samples_data
         assert catalog_cache._state['catalog'] == catalog_data
         assert catalog_cache._state['samples'] == samples_data
+
+
+class TestGetGenePresence:
+    """Tests for get_gene_presence() -- the one cached object stored
+    gzip-compressed in S3 (see the function's own docstring for the real
+    2026-09-28 incident this guards against: a 103MB plain-JSON artifact
+    timed out the whole Lambda on a cold start)."""
+
+    def test_s3_body_is_gunzipped_before_parsing(self, reset_state):
+        """The core regression test: get_object's raw bytes are gzip
+        bytes, not JSON text -- must be decompressed first."""
+        test_data = {"genes": {"STMN2": {"symbol": ["study1"]}}}
+        compressed = gzip.compress(json.dumps(test_data).encode())
+
+        mock_client = MagicMock()
+        mock_client.head_object.return_value = {'ETag': '"etag1"'}
+        mock_client.get_object.return_value = {
+            'Body': MagicMock(read=MagicMock(return_value=compressed))
+        }
+
+        with patch.object(catalog_cache, '_LOCAL_SOURCE', False):
+            with patch.object(catalog_cache, '_BUCKET', 'my-bucket'):
+                with patch.object(catalog_cache, '_GENE_PRESENCE_KEY', 'metadata/gene_presence.json'):
+                    with patch('catalog_cache.boto3.client', return_value=mock_client):
+                        result = catalog_cache.get_gene_presence()
+
+        assert result == test_data
+
+    def test_missing_object_returns_empty_index(self, reset_state):
+        """gene_presence.json not published yet (404) -> empty index, not
+        an error -- this is what lets gene_presence's own tool report
+        "not found" honestly instead of the whole call failing."""
+        import botocore.exceptions
+
+        mock_client = MagicMock()
+        mock_client.head_object.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject"
+        )
+
+        with patch.object(catalog_cache, '_LOCAL_SOURCE', False):
+            with patch.object(catalog_cache, '_BUCKET', 'my-bucket'):
+                with patch.object(catalog_cache, '_GENE_PRESENCE_KEY', 'metadata/gene_presence.json'):
+                    with patch('catalog_cache.boto3.client', return_value=mock_client):
+                        result = catalog_cache.get_gene_presence()
+
+        assert result == {"genes": {}}
+        mock_client.get_object.assert_not_called()
+
+    def test_other_client_errors_still_propagate(self, reset_state):
+        import botocore.exceptions
+
+        mock_client = MagicMock()
+        mock_client.head_object.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "403", "Message": "Forbidden"}}, "HeadObject"
+        )
+
+        with patch.object(catalog_cache, '_LOCAL_SOURCE', False):
+            with patch.object(catalog_cache, '_BUCKET', 'my-bucket'):
+                with patch.object(catalog_cache, '_GENE_PRESENCE_KEY', 'metadata/gene_presence.json'):
+                    with patch('catalog_cache.boto3.client', return_value=mock_client):
+                        with pytest.raises(botocore.exceptions.ClientError):
+                            catalog_cache.get_gene_presence()
+
+    def test_etag_cache_hit_skips_download_and_decompress(self, reset_state):
+        test_data = {"genes": {"STMN2": {"symbol": ["study1"]}}}
+        catalog_cache._state['gene_presence'] = test_data
+        catalog_cache._state['gene_presence_etag'] = '"etag1"'
+
+        mock_client = MagicMock()
+        mock_client.head_object.return_value = {'ETag': '"etag1"'}
+
+        with patch.object(catalog_cache, '_LOCAL_SOURCE', False):
+            with patch.object(catalog_cache, '_BUCKET', 'my-bucket'):
+                with patch.object(catalog_cache, '_GENE_PRESENCE_KEY', 'metadata/gene_presence.json'):
+                    with patch('catalog_cache.boto3.client', return_value=mock_client):
+                        result = catalog_cache.get_gene_presence()
+
+        assert result == test_data
+        mock_client.get_object.assert_not_called()
+
+    def test_local_source_reads_plain_json_no_gzip(self, reset_state):
+        """The local fixture path is never large enough to need
+        compression -- confirms it's read as plain JSON, not gunzipped."""
+        test_data = {"genes": {"STMN2": {"symbol": ["study1"]}}}
+
+        mock_path = MagicMock()
+        mock_path.__truediv__.return_value.exists.return_value = True
+        mock_path.__truediv__.return_value.read_text.return_value = json.dumps(test_data)
+
+        with patch.object(catalog_cache, '_LOCAL_SOURCE', True):
+            with patch.object(catalog_cache, '_LOCAL_DIR', mock_path):
+                result = catalog_cache.get_gene_presence()
+
+        assert result == test_data
+
+    def test_local_source_missing_file_returns_empty_index(self, reset_state):
+        mock_path = MagicMock()
+        mock_path.__truediv__.return_value.exists.return_value = False
+
+        with patch.object(catalog_cache, '_LOCAL_SOURCE', True):
+            with patch.object(catalog_cache, '_LOCAL_DIR', mock_path):
+                result = catalog_cache.get_gene_presence()
+
+        assert result == {"genes": {}}

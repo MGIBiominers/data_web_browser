@@ -65,16 +65,30 @@ def get_study(study_id: str) -> dict | None:
 
 
 def get_gene_presence() -> dict:
-    """Full gene_presence.json: {"genes": {symbol: [{study_id, filename,
-    id_type}, ...]}} -- built by pipeline/build_gene_presence.py, a
-    separate script from build_catalog.py since it needs to open real
-    processed data files (h5ad/parquet), not just small metadata.
+    """Full gene_presence.json: {"genes": {symbol: {"symbol": [study_id,
+    ...], "ensembl_id": [study_id, ...]}}} -- built by
+    pipeline/build_gene_presence.py, a separate script from build_catalog.py
+    since it needs to open real processed data files (h5ad/parquet), not
+    just small metadata.
 
     Unlike catalog.json/samples.json, this is a newer, optional artifact --
     a bucket with none published yet (or CATALOG_SOURCE=local without a
     fixtures/gene_presence.json) returns an empty index rather than raising,
     so gene_presence's own tool can report "not found" honestly instead of
     the whole server erroring on an unrelated call.
+
+    Real incident, not a preemptive guess: the plain-JSON artifact is
+    103MB. First deploy (2026-09-28) downloaded and json.loads()'d that in
+    full on every cold start -- confirmed live, it timed out at 60s and
+    crashed the Lambda Web Adapter's own response handling (a Rust panic
+    reading a response body that never finished), not a graceful Python
+    error. Fixed by storing the object gzip-compressed in S3 (2.1MB, a 49x
+    reduction -- this data is almost entirely repeated study_id strings,
+    which gzip handles extremely well) and decompressing here before
+    parsing. Not handled automatically by S3 or boto3 -- `get_object`
+    returns whatever bytes are actually stored; gzip only applies if this
+    function explicitly reverses it. The local-fixture path below is
+    unaffected (never large enough to need this).
     """
     if _LOCAL_SOURCE:
         path = _LOCAL_DIR / Path(_GENE_PRESENCE_KEY).name
@@ -82,12 +96,24 @@ def get_gene_presence() -> dict:
             return {"genes": {}}
         return json.loads(path.read_text(encoding="utf-8"))
 
+    import gzip
+
     import botocore
 
+    client = boto3.client("s3")
     try:
-        return _get_cached(_GENE_PRESENCE_KEY, "gene_presence")
+        etag = client.head_object(Bucket=_BUCKET, Key=_GENE_PRESENCE_KEY)["ETag"]
     except botocore.exceptions.ClientError as e:
         if e.response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
             logger.info("catalog_cache: gene_presence.json not published yet")
             return {"genes": {}}
         raise
+
+    if _state.get("gene_presence_etag") != etag:
+        body = client.get_object(Bucket=_BUCKET, Key=_GENE_PRESENCE_KEY)["Body"].read()
+        _state["gene_presence"] = json.loads(gzip.decompress(body))
+        _state["gene_presence_etag"] = etag
+        logger.info("catalog_cache: refreshed gene_presence (etag=%s)", etag)
+    else:
+        logger.info("catalog_cache: cache hit for gene_presence")
+    return _state["gene_presence"]

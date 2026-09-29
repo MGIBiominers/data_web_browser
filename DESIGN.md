@@ -773,7 +773,7 @@ than destroy it, since the sole reason under consideration (cost) doesn't
 apply. Revisit with `terraform destroy -target=<mcp.tf resources>` if that
 changes.
 
-## MCP server reactivated in code, not yet redeployed (2026-09-18)
+## MCP server reactivated (2026-09-18, deployed live 2026-09-29)
 
 The user decided the MCP server should be functional again, with one
 change: **it must never hand out a copy of any file** -- no presigned S3
@@ -802,17 +802,43 @@ Neither this repo's `infra/` nor the original scratchpad session that ran
 the first real `terraform apply` still has a `terraform.tfstate` file (the
 scratchpad's survived only as a stale provider cache, no state). Running
 `terraform apply` here blindly would make Terraform think none of these
-resources exist and try to create duplicates. Not resolved yet --
-flagged so no future session (including a later me) applies blindly.
+resources exist and try to create duplicates. **Still not resolved** (a
+future `terraform import` is needed before this directory's Terraform is
+trustworthy again) -- worked around, not fixed, by the real deploy below.
 
-**Not yet deployed.** The rebuilt `mcp_server/build/` package exists
-locally (`./build.sh` already run) but was never pushed to the real Lambda
--- the live function still runs the old `get_download_links` code as of
-this writing. Deploying for real needs either (a) direct `aws lambda
-update-function-code`/`update-function-configuration`/`iam put-role-policy`
-calls (bypassing Terraform given the state gap above), or (b) reconstructing
-Terraform state via `terraform import` first. Either way, an explicit
-go-ahead is needed before touching the live function -- not given yet.
+**Deployed for real, 2026-09-29**, once the user gave explicit go-ahead
+(bumping Lambda memory first, then "push changes to GitHub and finally
+deploy everything live") -- via direct `aws` CLI calls, per the state gap
+above, not `terraform apply`:
+- `aws lambda update-function-code`, staged through S3 rather than a
+  direct `--zip-file` body upload -- the ~26MB package's direct upload
+  dropped the connection twice in a row (`Connection was closed before we
+  received a valid response`) even with extended CLI timeouts; an
+  `aws s3 cp` + `update-function-code --s3-bucket/--s3-key` completed
+  cleanly on the first try. Worth remembering for any future deploy of a
+  package this size over an unreliable connection.
+- `aws lambda update-function-configuration` -- memory 512->1024MB,
+  timeout 30->60s (see the `gene_presence` incident just below for why),
+  and the 3 now-dead presign-related env vars
+  (`PRESIGN_CREDENTIALS_PARAM`/`DOWNLOAD_LINK_MANIFEST_THRESHOLD`/
+  `PRESIGN_TTL_SECONDS`) dropped.
+- `aws iam put-role-policy` -- trimmed the execution role's inline policy
+  to match `infra/mcp.tf`'s current shape (`metadata/*` read,
+  `requests/*` read+write only; dropped the stale `manifests/*` grant and
+  `ssm:GetParameter`, confirmed via `get-role-policy` before touching it
+  that both were still present from the original 2-identity design).
+- `metadata/catalog.json`/`samples.json` refreshed to the current build
+  (50 studies, every fix from this whole session baked in) via a plain
+  `aws s3 cp` -- not `publish.py`, since its data-sync path is exactly
+  what the "S3 policy: metadata only" decision above ruled out running
+  again.
+
+Verified live immediately after, against the real Function URL: `tools/list`
+returns all 9 tools (`get_download_links` fully gone); `get_data_locations`
+returns a real HTCF path with zero URLs anywhere in the response;
+`gene_presence`/`build_cohort` both confirmed working (see the incident
+and fix directly below -- the first `gene_presence` deploy was broken,
+caught and fixed before declaring this section done).
 
 ## HTCF metadata refresh: 41 -> 50 studies, plus a real parser bug fix (2026-09-19)
 
@@ -1125,12 +1151,45 @@ sample's data is in when a study has more than one data file (e.g. Zelic's
 files is listed, and whoever opens one still has to check its own
 obs/columns to confirm it's the right one.
 
-Both registered in `server.py` (9 tools total now), both fully tested
-(250 `mcp_server` tests, 291 pipeline tests, all passing) and synced to
-the HTCF mirror. **Neither is live** -- `gene_presence.json` hasn't been
-published to S3, and the Lambda still runs the pre-reactivation code (see
-"MCP server reactivated" above) -- both still pending the same explicit
-go-ahead before touching real AWS.
+Both registered in `server.py` (9 tools total now). Both **live** as of
+2026-09-29 (see "MCP server reactivated" above for the full deploy) --
+`build_cohort` worked correctly on the first deploy; `gene_presence` did
+not, see the incident directly below.
+
+### `gene_presence`'s first deploy was broken -- 103MB timed out the Lambda outright
+
+Uploaded the plain 103MB `gene_presence.json` as-is on the first deploy
+attempt. Every `gene_presence` call then failed -- not a clean Python
+error, but a 60s timeout followed by the AWS Lambda Web Adapter's own Rust
+code panicking (`unable to read bytes from body: ... unexpected EOF during
+chunk size line`) trying to read a response that never finished, visible
+directly in CloudWatch. Root cause: `catalog_cache.get_gene_presence()`
+downloads and `json.loads()`s the full object on every cold start --
+103MB of that was simply too slow (network + CPU-bound parsing) to finish
+inside even the just-bumped 60s timeout.
+
+**Fixed by gzip-compressing the artifact before upload**: `gzip -k -9
+gene_presence.json` -> 2.1MB, a **49x reduction** (this data is almost
+entirely repeated `study_id` strings across genes, which gzip handles
+extremely well -- far better than the raw JSON's own size would suggest).
+`catalog_cache.get_gene_presence()` updated to explicitly
+`gzip.decompress()` the S3 object body before parsing -- neither S3 nor
+boto3 do this automatically; `get_object` just returns whatever bytes are
+actually stored, compressed or not. 6 new regression tests in
+`test_catalog_cache.py` covering the gzip path, the 404-graceful-empty
+path, and ETag caching for this specific object. Redeployed with the fix;
+verified live: a cold-start `gene_presence` call now completes in ~8s, a
+warm one in ~1.3s -- both confirmed directly against the real Function URL,
+not just "should work now."
+
+Two things worth remembering from this: first, the original "not yet
+proven safe, worth a look before going live" caveat written earlier in
+this same session turned out to be exactly right -- it just wasn't acted
+on before the first real deploy, which is what actually caught it.
+Second, `build_gene_presence.py` itself was correct the whole time (the
+513,091-identifier, 103MB *content* was never wrong) -- this was purely a
+transport/deploy-format problem, solved without touching the scan logic
+at all.
 
 ## Not yet done
 

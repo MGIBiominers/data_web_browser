@@ -82,8 +82,14 @@ resource "aws_lambda_function" "mcp" {
   handler          = "run.sh" # unused by the Web Adapter, but required by the API
   filename         = data.archive_file.mcp_lambda.output_path
   source_code_hash = data.archive_file.mcp_lambda.output_base64sha256
-  memory_size      = 512
-  timeout          = 30
+  # Bumped from 512/30 on 2026-09-28 for gene_presence: its backing
+  # artifact (metadata/gene_presence.json) is 103MB of raw JSON, which
+  # parses into Python objects at roughly 1.5-2.5x that size -- close
+  # enough to the old 512MB limit to risk an OOM on the very first call
+  # after a cold start. Timeout bumped alongside it to give a cold start
+  # enough room to download + parse that file over S3, not just execute.
+  memory_size = 1024
+  timeout     = 60
 
   layers = [var.lambda_web_adapter_layer_arn]
 

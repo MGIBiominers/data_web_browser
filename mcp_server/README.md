@@ -97,13 +97,31 @@ query.** Collapsing to one entry per (gene, study, id_type) rather than
 (gene, file) fixed it (5x smaller); see the script's docstring for the
 full story.
 
-**Still worth a look before this goes live**: 103MB parsed into Python
-objects typically runs 1.5-2.5x larger in memory than its raw JSON size --
-close enough to the Lambda's current 512MB `memory_size`
-(`infra/mcp.tf`) to be worth bumping that up (e.g. to 1024MB) as part of
-whatever deploy actually publishes this artifact, rather than assuming
-it'll fit. Not yet a proven problem, just not proven safe either --
-nobody's actually run this inside the Lambda yet.
+**Real production incident, 2026-09-28, not a hypothetical:** the first
+live deploy uploaded the plain 103MB JSON as-is. `gene_presence` then
+timed out at 60s on every call -- confirmed via CloudWatch: a cold start
+downloading + `json.loads()`-ing 103MB took longer than the Lambda's own
+timeout, and crashed the AWS Lambda Web Adapter's Rust-side response
+handling outright (a panic reading a response body that never finished),
+not a clean Python error. Fixed by gzip-compressing the artifact before
+upload -- **2.1MB** (a 49x reduction; this data is almost entirely
+repeated `study_id` strings, which gzip handles extremely well) --
+and having `catalog_cache.get_gene_presence()` explicitly `gzip.decompress()`
+the S3 object body before parsing (S3/boto3 do not do this automatically;
+`get_object` just returns whatever bytes are actually stored). Deploy step,
+not something `build_gene_presence.py` itself does:
+
+```bash
+gzip -k -9 gene_presence.json   # -> gene_presence.json.gz
+aws s3 cp gene_presence.json.gz s3://<bucket>/metadata/gene_presence.json
+```
+
+Verified live after the fix: a cold-start `gene_presence` call completes
+in ~8s (well inside the timeout); a warm one in ~1.3s. Lambda `memory_size`
+was also bumped 512 -> 1024MB and `timeout` 30 -> 60s (`infra/mcp.tf`) as
+part of the same deploy, on general principle -- not proven necessary after
+the gzip fix, but cheap insurance against a much bigger index in the
+future.
 
 ## Tests
 
@@ -111,7 +129,7 @@ nobody's actually run this inside the Lambda yet.
 .venv/bin/python -m pytest tests/ -q
 ```
 
-250 tests as of this writing, all against real dependencies (`mcp`,
+256 tests as of this writing, all against real dependencies (`mcp`,
 `boto3`) with only their I/O-performing methods mocked -- see
 `conftest.py` for the sys.path setup that makes bare imports
 (`import catalog_cache`, `import search_studies`, etc.) resolve the same
@@ -127,10 +145,32 @@ way they do in the real Lambda deployment.
    URL, and its execution role -- see `mcp.tf`'s header comment). Needs
    `lambda_web_adapter_layer_arn` set to the current layer ARN from
    https://github.com/awslabs/aws-lambda-web-adapter/releases.
-3. Run a real (non-`--dry-run`) `pipeline/publish.py` for at least one
-   study so there's real metadata in the bucket to search against (this
-   server reads `metadata/catalog.json`/`metadata/samples.json` from S3;
-   it doesn't need any study's actual data files to be in S3 at all, since
-   `get_data_locations` points at HTCF, not S3).
+3. Publish current metadata to `metadata/` in the bucket -- `catalog.json`/
+   `samples.json` (a plain `aws s3 cp`, or a real non-`--dry-run`
+   `pipeline/publish.py` run) and, if built, `gene_presence.json`
+   (**gzip it first** -- see "Gene presence index" above; uncompressed
+   broke the server outright the first time). This server doesn't need any
+   study's actual data files in S3 at all -- `get_data_locations` points
+   at HTCF, not S3.
 4. Point MCP Inspector or the client snippet above at the real
    `mcp_function_url` Terraform output (path `/mcp`) instead of localhost.
+
+**Current real state (2026-09-28+): local Terraform state for this infra
+is gone** (see `DESIGN.md`'s "MCP server reactivated" section) -- running
+`terraform apply` here blindly would try to create duplicate resources.
+Until that's reconciled (`terraform import` first), updates go through
+direct `aws` CLI calls instead of step 2 above:
+```bash
+# Code, staged through S3 -- a direct --zip-file body upload of anything
+# beyond a few MB has repeatedly dropped the connection over a slow link;
+# staging through S3 first is far more reliable for this package's ~26MB.
+aws s3 cp mcp_lambda_deploy.zip s3://<bucket>/_lambda_deploy/mcp_lambda_deploy.zip
+aws lambda update-function-code --function-name <fn> \
+  --s3-bucket <bucket> --s3-key _lambda_deploy/mcp_lambda_deploy.zip
+aws s3 rm s3://<bucket>/_lambda_deploy/mcp_lambda_deploy.zip   # don't leave it there
+
+# Config (memory/timeout/env vars) and the execution role's inline policy
+# need the same manual treatment -- see infra/mcp.tf for what they should
+# match; `aws lambda update-function-configuration` and
+# `aws iam put-role-policy` respectively.
+```
