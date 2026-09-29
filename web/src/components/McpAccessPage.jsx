@@ -79,7 +79,7 @@ export default function McpAccessPage({ onBack }) {
         <ol>
           <li>Go to <strong>Customize &rarr; Connectors &rarr; Add connector</strong>.</li>
           <li>Choose <strong>Remote URL</strong>.</li>
-          <li>Paste the server URL above.</li>
+          <li>Paste this URL: <code>{MCP_URL}</code></li>
           <li>Give it a name, then click <strong>Add</strong>.</li>
         </ol>
       </section>
