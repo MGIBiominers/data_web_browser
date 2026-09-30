@@ -167,11 +167,16 @@ export function filterStudies(studies, filters, query) {
       if (!matchesArrayFacet(s[field], filters[key])) return false
     }
     if (!q) return true
+    // Deliberately excludes s.notes: that's free-text provenance/curation
+    // prose that often mentions OTHER studies' accessions in passing (e.g.
+    // documenting why a related GSE was excluded or already held elsewhere)
+    // -- including it made searching for one study's exact GSE number
+    // return unrelated studies that merely reference it. Keep this to the
+    // study's own identity fields.
     const haystack = [
       s.study_id,
       s.title,
       s.journal,
-      s.notes,
       ...(s.gse || []),
       s.bioproject,
     ]
