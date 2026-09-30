@@ -75,3 +75,49 @@ class TestGenePresence:
     def test_summary_reflects_absent(self, mock_presence):
         result = gene_presence("NOT_A_REAL_GENE")
         assert "was not found" in result.content[0].text
+
+
+class TestGenePresenceBatch:
+
+    @patch('gene_presence.get_gene_presence', return_value=_PRESENCE)
+    def test_list_returns_genes_dict_keyed_by_symbol(self, mock_presence):
+        result = gene_presence(["STMN2", "NOT_A_REAL_GENE"])
+        genes = result.structured_content["genes"]
+        assert set(genes) == {"STMN2", "NOT_A_REAL_GENE"}
+
+    @patch('gene_presence.get_gene_presence', return_value=_PRESENCE)
+    def test_list_each_entry_matches_single_symbol_shape_minus_symbol_key(self, mock_presence):
+        result = gene_presence(["STMN2"])
+        single = gene_presence("STMN2").structured_content
+        batch_entry = result.structured_content["genes"]["STMN2"]
+        assert batch_entry == {
+            "present": single["present"],
+            "studies": single["studies"],
+            "ensembl_id_only_studies": single["ensembl_id_only_studies"],
+        }
+
+    @patch('gene_presence.get_gene_presence', return_value=_PRESENCE)
+    def test_list_mixed_found_and_absent(self, mock_presence):
+        result = gene_presence(["STMN2", "ENSG00000104435", "NOT_A_REAL_GENE"])
+        genes = result.structured_content["genes"]
+        assert genes["STMN2"]["present"] is True
+        assert genes["ENSG00000104435"]["ensembl_id_only_studies"] == ["SomeStudy"]
+        assert genes["NOT_A_REAL_GENE"]["present"] is False
+
+    @patch('gene_presence.get_gene_presence', return_value=_PRESENCE)
+    def test_list_empty_list(self, mock_presence):
+        result = gene_presence([])
+        assert result.structured_content["genes"] == {}
+        assert result.content[0].text.startswith("0/0 gene(s) found")
+
+    @patch('gene_presence.get_gene_presence', return_value=_PRESENCE)
+    def test_list_summary_reports_found_over_total(self, mock_presence):
+        result = gene_presence(["STMN2", "UNC13A", "NOT_A_REAL_GENE"])
+        assert result.content[0].text.startswith("2/3 gene(s) found in the collection.")
+
+    @patch('gene_presence.get_gene_presence', return_value=_PRESENCE)
+    def test_list_full_data_present_in_text_content(self, mock_presence):
+        result = gene_presence(["STMN2"])
+        text = result.content[0].text
+        assert "Zelic2025_Immunity" in text
+        assert "Cho2020_GSE126044" in text
