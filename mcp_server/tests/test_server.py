@@ -1,6 +1,6 @@
 """Integration-style tests for server.py.
 
-server.py is pure composition/wiring code (create MCPServer, register 7
+server.py is pure composition/wiring code (create MCPServer, register 8
 tools + 5 resources, build the ASGI app) -- the meaningful thing to verify
 is that the real wiring actually works against the real `mcp` SDK, not that
 internal calls happen in some mocked sequence.
@@ -32,8 +32,11 @@ import server
 EXPECTED_TOOLS = {
     "search_studies", "get_study_overview", "search_samples",
     "get_sample_details", "explain_data_file", "get_data_locations",
-    "request_dataset_download", "gene_presence", "build_cohort",
+    "request_dataset_download", "build_cohort",
 }
+# gene_presence is deliberately NOT registered (see server.py's own comment
+# at the top of its tool list) -- its code/tests are kept for a future
+# version, just not exposed as a live tool right now.
 EXPECTED_RESOURCE_URIS = {
     "pipeline-docs://alignment_methodology",
     "pipeline-docs://bulk_rnaseq_schema",
@@ -54,7 +57,7 @@ def test_instructions_mention_key_tools_and_resources():
     assert "pipeline-docs://" in instructions
 
 
-def test_all_seven_tools_registered():
+def test_all_eight_tools_registered():
     tools = asyncio.run(server.mcp.list_tools())
     assert {t.name for t in tools} == EXPECTED_TOOLS
 

@@ -3,11 +3,10 @@
 Remote MCP server for the ALS EXTERNAL_DATASETS catalog: search studies and
 samples, get comprehensive study/sample detail, understand what's actually
 inside a specific processed file, get the real HTCF filesystem location of
-processed data (not a download -- see below), check whether a gene was even
-measured anywhere in the collection, assemble a filtered cohort's files, and
-request a dataset that isn't in the collection yet. See `../DESIGN.md`'s
-"MCP server" and "MCP server reactivated" sections for the full architecture
-and design decisions.
+processed data (not a download -- see below), assemble a filtered cohort's
+files, and request a dataset that isn't in the collection yet. See
+`../DESIGN.md`'s "MCP server" and "MCP server reactivated" sections for the
+full architecture and design decisions.
 
 **This server never transfers file contents.** `get_data_locations` (added
 2026-09-18, replacing the earlier `get_download_links`) only ever returns
@@ -65,7 +64,27 @@ data matching those same study_ids (the real one is 103MB -- see
 all -- `catalog_cache.get_gene_presence()` returns an empty index rather
 than erroring, so every other tool stays testable without it.
 
-## Gene presence index
+## Gene presence index (tool disabled as of 2026-10-01, code kept)
+
+`gene_presence` is **not currently registered in `server.py`** -- real
+usage surfaced a design limitation worth fixing before exposing it again:
+since this collection deposits exactly what each study's authors uploaded
+with no filtering of our own, and standard RNA-seq quantification tools
+report the *entire* reference-genome gene set regardless of actual
+expression, a "present" result is close to tautological for any
+whole-transcriptome study -- nearly every real human/mouse gene symbol
+shows up as "present" in nearly every such study, whether or not it was
+ever meaningfully detected there. The tool's one genuinely reliable signal
+-- ruling a gene *out* for a targeted-panel study, or catching a
+species-casing/Ensembl-ID mismatch -- wasn't judged enough on its own to
+justify exposing it as a general-purpose gene search tool in its current
+form. `tools/gene_presence.py` (including its 2026-09-30 batch-query
+support, accepting a list of symbols in one call), its tests, and the
+precomputed `gene_presence.json` artifact described below are all kept
+as-is, not deleted -- a future version could surface each study's total
+gene-panel size (or real detection) alongside presence so a caller can
+tell a trivial reference-genome hit from a meaningful one. See
+`DESIGN.md` for the full discussion.
 
 `gene_presence` is the one tool that doesn't read `catalog.json`/
 `samples.json` directly -- it reads a separate precomputed artifact,

@@ -1191,6 +1191,39 @@ Second, `build_gene_presence.py` itself was correct the whole time (the
 transport/deploy-format problem, solved without touching the scan logic
 at all.
 
+### `gene_presence` disabled as a registered tool (2026-10-01) -- a real design limitation, caught after shipping
+
+On 2026-09-30, `gene_presence` was extended to accept a list of symbols in
+one call (batch lookup), verified live. Discussing that change surfaced a
+limitation in the tool's basic premise, not just its batch support: this
+collection deposits exactly what each study's authors uploaded, with no
+filtering of our own -- and standard RNA-seq quantification tools (STAR,
+RSEM, Salmon, Cell Ranger, etc.) report counts against the *entire*
+reference-genome annotation regardless of actual expression, with
+zero-count genes still included rather than dropped. That means for any
+whole-transcriptome study, "present" is close to tautological: nearly
+every real human/mouse gene symbol will show up as "present" in nearly
+every such study, whether or not it was ever meaningfully detected --
+confirmed directly: querying `STMN2` and `UNC13A` against the live index
+returned the *identical* 25-study list for both, which is exactly what
+you'd expect from two ordinary genes against whole-transcriptome data,
+not a meaningful finding about either gene specifically.
+
+The tool's one genuinely reliable signal -- ruling a gene *out* for a
+study that used a targeted panel (the build script's own docstring already
+flagged some files with as few as ~8,000 genes), or catching a
+species-casing/Ensembl-ID mismatch before someone wastes time on it --
+wasn't judged enough on its own to justify keeping it exposed as a
+general-purpose "search for a gene" tool. Decision: unregister it from
+`server.py` (removed from both the tool-registration tuple and the
+`instructions` text) rather than delete anything. `tools/gene_presence.py`
+(with its batch support), `tests/test_gene_presence.py`, and the
+precomputed `metadata/gene_presence.json` artifact in S3 are all kept
+as-is -- a future version could surface each study's total gene-panel size
+(or real per-sample detection, a much heavier change) alongside presence
+so a caller can tell a trivial reference-genome hit from a meaningful one.
+`server.py` now registers 8 tools, not 9.
+
 ## Not yet done
 
 - **Switching the live app from bundled data to a live S3 fetch.** The web

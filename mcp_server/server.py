@@ -20,7 +20,6 @@ from mcp.server.mcpserver import MCPServer
 from tools import (
     build_cohort,
     explain_data_file,
-    gene_presence,
     get_data_locations,
     get_sample_details,
     get_study_overview,
@@ -28,6 +27,17 @@ from tools import (
     search_samples,
     search_studies,
 )
+
+# gene_presence.py is deliberately NOT registered below (as of 2026-10-01):
+# its "present" signal is near-tautological for whole-transcriptome studies
+# (any real gene symbol shows up as "present" in nearly every such study,
+# since authors deposit the full reference-genome gene set regardless of
+# actual expression -- this collection does no filtering of its own). Real
+# discriminating value only for targeted-panel studies and symbol/Ensembl-ID
+# mismatches, not worth exposing as a general-purpose gene search tool in
+# its current form. Code, tests, and the precomputed gene_presence.json
+# artifact are kept as-is (not deleted) for a future version that surfaces
+# panel size or actual detection alongside presence -- see DESIGN.md.
 
 mcp = MCPServer(
     "als-dataset-catalog",
@@ -42,9 +52,7 @@ mcp = MCPServer(
         "full context on a specific match, explain_data_file to understand "
         "what's actually inside a given processed file, and "
         "get_data_locations to get its real HTCF path once you know what "
-        "you want. gene_presence checks whether a gene was even measured "
-        "anywhere in the collection before you go looking for it; "
-        "build_cohort composes a filtered sample search with the files "
+        "you want. build_cohort composes a filtered sample search with the files "
         "needed to actually assemble that cohort's data. See the "
         "pipeline-docs:// resources for how this collection's files are "
         "structured and processed. Use request_dataset_download to ask for "
@@ -60,7 +68,6 @@ for fn in (
     explain_data_file.explain_data_file,
     get_data_locations.get_data_locations,
     request_dataset_download.request_dataset_download,
-    gene_presence.gene_presence,
     build_cohort.build_cohort,
 ):
     mcp.tool()(fn)
