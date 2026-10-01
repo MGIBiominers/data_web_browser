@@ -1224,6 +1224,41 @@ as-is -- a future version could surface each study's total gene-panel size
 so a caller can tell a trivial reference-genome hit from a meaningful one.
 `server.py` now registers 8 tools, not 9.
 
+### Real reported bug: case-sensitive search + an unused canonical tissue field (2026-10-01)
+
+External report: "my first lowercase-only query returned 0 and missed most
+of these samples" against `search_samples`'s `sex` field, plus tissue
+wording varying by sample (`"motor cortex"`, `"lateral motor cortex"`,
+`"Cortex_Motor_BA4"`). Verified directly against the real 6,192-sample
+collection: `sex` really does mix casing (468 `"Male"` + 234 `"male"`, 375
+`"Female"` + 126 `"female"`) with `search_samples`/`build_cohort` doing a
+plain case-sensitive `==`. The tissue half turned out to already be solved
+and simply unused: `samples.json` has 91 distinct raw `tissue_or_cell_type`
+spellings but also a clean ~35-value canonical `tissue` column (the same
+vocabulary pass behind `disease_status_canonical`) that correctly collapses
+all three of the reporter's example strings into the right canonical
+buckets (`"Motor Cortex"` / `"Motor Cortex (Lateral)"` / `"Motor Cortex
+(BA4)"`) -- `search_samples` just never queried it, filtering on the raw
+field instead. `disease_status` had the identical bug pattern (68 raw
+values vs. 29 canonical). `build_cohort` already matched canonical
+disease_status/tissue/genotype (built that way from the start, see above)
+but was still case-sensitive on every field.
+
+Fix: a new shared `sample_filters.py` (`matches(sample, query, field,
+fallback_field=None)`) used by both `search_samples.py` and
+`build_cohort.py` -- case-insensitive always, and for `disease_status`/
+`tissue` prefers the canonical column, falling back to the raw field only
+when canonical is null (so cell-culture samples like "iPSC-derived motor
+neuron cultures", which have no anatomical `tissue` bucket, stay
+searchable). `sex`/`treatment`/`platform` have no canonical counterpart, so
+the fix there is purely case-insensitivity. `build_cohort`'s
+disease_status/tissue/genotype matching deliberately keeps no raw
+fallback -- unchanged from its original canonical-only design, just now
+also case-insensitive. 10 new tests added across `test_sample_filters.py`
+(new), `test_search_samples.py`, and `test_build_cohort.py`; one existing
+`search_samples` test asserting the old case-sensitive behavior was
+inverted rather than deleted, since that behavior was the bug.
+
 ## Not yet done
 
 - **Switching the live app from bundled data to a live S3 fetch.** The web

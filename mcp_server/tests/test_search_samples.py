@@ -376,20 +376,97 @@ def test_missing_optional_fields_in_samples(mock_get_samples, mock_link_func, mo
 
 @patch("search_samples.rl.sample_metadata_link")
 @patch("search_samples.get_samples")
-def test_case_sensitive_exact_match(mock_get_samples, mock_link_func, mock_samples, mock_link):
-    """Test that filtering is case-sensitive."""
+def test_matching_is_case_insensitive(mock_get_samples, mock_link_func, mock_samples, mock_link):
+    """Real reported bug: raw sex/disease_status data mixes casing
+    ("Male"/"male", "ALS"/"als" in principle) -- a lowercase-only query
+    must still find samples stored with a different casing."""
     from search_samples import search_samples
-    
+
     mock_get_samples.return_value = mock_samples
     mock_link_func.return_value = mock_link
-    
+
     result = search_samples(disease_status="als")
-    
-    assert result.structured_content["total_matches"] == 0
-    
-    result = search_samples(disease_status="ALS")
-    
+
     assert result.structured_content["total_matches"] == 3
+
+    result = search_samples(disease_status="ALS")
+
+    assert result.structured_content["total_matches"] == 3
+
+
+@patch("search_samples.rl.sample_metadata_link")
+@patch("search_samples.get_samples")
+def test_sex_filter_matches_regardless_of_stored_casing(mock_get_samples, mock_link_func, mock_link):
+    """The actual reported bug: real data mixes "Male"/"male" and
+    "Female"/"female" casing -- a single-casing query must find both."""
+    from search_samples import search_samples
+
+    mixed_casing_samples = [
+        {"study_id": "s1", "sample_id": "a", "sex": "Female"},
+        {"study_id": "s1", "sample_id": "b", "sex": "female"},
+        {"study_id": "s1", "sample_id": "c", "sex": "Male"},
+    ]
+    mock_get_samples.return_value = mixed_casing_samples
+    mock_link_func.return_value = mock_link
+
+    result = search_samples(sex="female")
+
+    assert result.structured_content["total_matches"] == 2
+
+
+@patch("search_samples.rl.sample_metadata_link")
+@patch("search_samples.get_samples")
+def test_tissue_filter_collapses_raw_spelling_variants_via_canonical_field(
+    mock_get_samples, mock_link_func, mock_link
+):
+    """Real reported bug: tissue_or_cell_type has dozens of raw spelling
+    variants for the same real region ("motor cortex", "lateral motor
+    cortex", "Cortex_Motor_BA4") that a single exact-match query can't catch
+    all of. HTCF's own vocabulary pass already collapses these into a clean
+    `tissue` column -- querying it directly fixes this with no new mapping
+    of our own."""
+    from search_samples import search_samples
+
+    samples_with_canonical_tissue = [
+        {"study_id": "s1", "sample_id": "a", "tissue": "Motor Cortex (BA4)",
+         "tissue_or_cell_type": "motor cortex (BA4)"},
+        {"study_id": "s1", "sample_id": "b", "tissue": "Motor Cortex (BA4)",
+         "tissue_or_cell_type": "Cortex_Motor_BA4"},
+        {"study_id": "s1", "sample_id": "c", "tissue": "Motor Cortex (Lateral)",
+         "tissue_or_cell_type": "lateral motor cortex"},
+    ]
+    mock_get_samples.return_value = samples_with_canonical_tissue
+    mock_link_func.return_value = mock_link
+
+    result = search_samples(tissue="Motor Cortex (BA4)")
+
+    assert result.structured_content["total_matches"] == 2
+    assert {s["sample_id"] for s in result.structured_content["samples"]} == {"a", "b"}
+
+
+@patch("search_samples.rl.sample_metadata_link")
+@patch("search_samples.get_samples")
+def test_tissue_filter_falls_back_to_raw_when_no_canonical_value(
+    mock_get_samples, mock_link_func, mock_link
+):
+    """Samples with no anatomical tissue bucket (e.g. iPSC-derived cell
+    cultures) must stay reachable by their raw tissue_or_cell_type value --
+    switching to the canonical field must not silently drop them."""
+    from search_samples import search_samples
+
+    samples = [
+        {"study_id": "s1", "sample_id": "a", "tissue": None,
+         "tissue_or_cell_type": "iPSC-derived motor neuron cultures"},
+        {"study_id": "s1", "sample_id": "b", "tissue": "Motor Cortex",
+         "tissue_or_cell_type": "motor cortex"},
+    ]
+    mock_get_samples.return_value = samples
+    mock_link_func.return_value = mock_link
+
+    result = search_samples(tissue="iPSC-derived motor neuron cultures")
+
+    assert result.structured_content["total_matches"] == 1
+    assert result.structured_content["samples"][0]["sample_id"] == "a"
 
 
 @patch("search_samples.rl.sample_metadata_link")

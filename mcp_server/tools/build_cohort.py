@@ -6,6 +6,7 @@ from mcp.types import CallToolResult
 import resource_links as rl
 from catalog_cache import get_catalog, get_samples
 from format import format_label
+from sample_filters import matches
 from tool_response import build_result
 
 
@@ -41,17 +42,19 @@ def build_cohort(
     *which study and which files* are worth opening; it doesn't claim to
     resolve sample-to-file assignment the catalog doesn't have.
 
+    Case-insensitive on every field below.
+
     Args:
-        disease_status: exact match against disease_status_canonical,
+        disease_status: matched against disease_status_canonical,
             e.g. "ALS", "Control".
         sex: "male" / "female".
-        tissue: exact match against the canonical tissue field.
-        treatment: exact match against the treatment field (not
+        tissue: matched against the canonical tissue field.
+        treatment: matched against the treatment field (not
             canonicalized -- same free-text field search_samples uses).
         platform: sequencing platform/instrument.
-        genotype: exact match against genotype_canonical, e.g.
+        genotype: matched against genotype_canonical, e.g.
             "TARDBP_M337V", "C9orf72 repeat expansion (positive)".
-        study_id: restrict to one study.
+        study_id: restrict to one study (exact match).
 
     Returns:
         {"total_matched_samples": int, "cohort": [{study_id, directory,
@@ -65,19 +68,19 @@ def build_cohort(
         reference(s) for whichever formats are actually present.
     """
     samples = get_samples()
-    matches = [
+    matched = [
         s for s in samples
         if (not study_id or s.get("study_id") == study_id)
-        and (not disease_status or s.get("disease_status_canonical") == disease_status)
-        and (not sex or s.get("sex") == sex)
-        and (not tissue or s.get("tissue") == tissue)
-        and (not treatment or s.get("treatment") == treatment)
-        and (not platform or s.get("platform") == platform)
-        and (not genotype or s.get("genotype_canonical") == genotype)
+        and matches(s, disease_status, "disease_status_canonical")
+        and matches(s, sex, "sex")
+        and matches(s, tissue, "tissue")
+        and matches(s, treatment, "treatment")
+        and matches(s, platform, "platform")
+        and matches(s, genotype, "genotype_canonical")
     ]
 
     sample_ids_by_study: dict[str, list[str]] = {}
-    for s in matches:
+    for s in matched:
         sid = s.get("sample_id") or s.get("accession")
         if sid:
             sample_ids_by_study.setdefault(s["study_id"], []).append(sid)
@@ -115,9 +118,9 @@ def build_cohort(
     cohort.sort(key=lambda c: c["study_id"])
     links = rl.for_formats(all_formats)
     result = {
-        "total_matched_samples": len(matches),
+        "total_matched_samples": len(matched),
         "cohort": cohort,
         "excluded_studies": excluded_studies,
     }
-    summary = f"{len(matches)} matching sample(s) across {len(cohort)} studies with processed data."
+    summary = f"{len(matched)} matching sample(s) across {len(cohort)} studies with processed data."
     return build_result(summary, result, extra_content=links)
