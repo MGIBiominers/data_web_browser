@@ -1,7 +1,8 @@
 // Builds the plain-text blob the "Copy information for Claude" button in
 // StudyDetail puts on the clipboard -- study identity/summary plus the real
-// HTCF filesystem location of its processed data, for pasting into a
-// Claude Code session that has HTCF access. Deliberately study-level only
+// filesystem location of its processed data on every system it lives on
+// (HTCF and RIS), for pasting into a Claude Code session that has access to
+// either one. Deliberately study-level only
 // (no per-sample paths): processed files hold every sample together in one
 // file (see mcp_server/resources/h5ad_schema.md's obs["sample_id"]
 // convention), and raw per-sample files are bundled inside one
@@ -10,7 +11,11 @@
 
 const MAX_LISTED_FILES = 20
 
-export function buildStudyContext(study, sourceRoot) {
+const SYSTEM_LABELS = { htcf: 'HTCF', ris: 'RIS (Compute2 / Storage3)' }
+
+// `roots` is catalog.roots: { htcf: <abs root>, ris: <abs root> }. The layout
+// below each root is identical, so one study maps to one path per system.
+export function buildStudyContext(study, roots) {
   const lines = []
   lines.push('ALS Dataset Browser -- study context')
   lines.push('')
@@ -35,18 +40,21 @@ export function buildStudyContext(study, sourceRoot) {
 
   lines.push('')
   const dataFiles = (study.processed_files || []).filter((f) => f.category === 'data')
-  if (dataFiles.length > 0 && sourceRoot) {
-    const dir = `${sourceRoot}/studies/${study.study_id}/processed/`
-    lines.push('HTCF processed data:')
-    lines.push(dir)
+  const systems = Object.entries(roots || {})
+  if (dataFiles.length > 0 && systems.length > 0) {
+    lines.push('Processed data (same layout on each system -- use the path for the system you are on):')
+    for (const [system, root] of systems) {
+      lines.push(`${SYSTEM_LABELS[system] || system}: ${root.replace(/\/+$/, '')}/studies/${study.study_id}/processed/`)
+    }
+    lines.push('Files:')
     for (const f of dataFiles.slice(0, MAX_LISTED_FILES)) {
       lines.push(`  - ${f.name}`)
     }
     if (dataFiles.length > MAX_LISTED_FILES) {
-      lines.push(`  (+ ${dataFiles.length - MAX_LISTED_FILES} more -- see the directory above)`)
+      lines.push(`  (+ ${dataFiles.length - MAX_LISTED_FILES} more -- see the directories above)`)
     }
   } else {
-    lines.push('HTCF processed data: not yet processed for this study.')
+    lines.push('Processed data: not yet processed for this study.')
   }
 
   return lines.join('\n')

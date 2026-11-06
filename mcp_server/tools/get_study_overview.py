@@ -6,9 +6,9 @@ from mcp.types import CallToolResult
 import resource_links as rl
 from catalog_cache import get_catalog, get_samples
 from format import format_label
+from locations import get_roots, processed_dirs
 from tool_response import build_result
 
-HTCF_STUDIES_ROOT = "/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS/studies"
 STUDY_SAMPLE_CAP = 100
 
 
@@ -36,7 +36,7 @@ def get_study_overview(study_ids: list[str]) -> CallToolResult:
     Returns:
         One entry per requested study_id. An unrecognized study_id gets
         status="not_found". A study with access_restricted=true (currently:
-        dbGaP-controlled studies) never includes htcf_processed_path -- its
+        dbGaP-controlled studies) never includes htcf_processed_path/ris_processed_path -- its
         data isn't available through this server; the description is still
         shown so you know the study exists and why it's gated. `processed_files`
         lists every file this study has been converted to, each with its own
@@ -50,6 +50,7 @@ def get_study_overview(study_ids: list[str]) -> CallToolResult:
         sample-metadata references relevant to the returned studies.
     """
     catalog = get_catalog()
+    roots = get_roots(catalog)
     by_id = {s["study_id"]: s for s in catalog["studies"]}
     samples = get_samples()
 
@@ -114,7 +115,9 @@ def get_study_overview(study_ids: list[str]) -> CallToolResult:
             "access_restricted": study.get("access_restricted", False),
         }
         if not study.get("access_restricted", False):
-            entry["htcf_processed_path"] = f"{HTCF_STUDIES_ROOT}/{study_id}/processed/"
+            dirs = processed_dirs(roots, study_id)
+            entry["htcf_processed_path"] = dirs["htcf"]
+            entry["ris_processed_path"] = dirs["ris"]
         out.append(entry)
 
     links = rl.for_formats(formats_seen)

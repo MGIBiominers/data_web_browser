@@ -482,3 +482,17 @@ class TestEdgeCases:
         )
         result = cat.to_dict()
         assert len(result["studies"]) == 100
+
+class TestCatalogRoots:
+    def test_to_dict_includes_roots_and_keeps_source_root(self):
+        from catalog_schema import Catalog
+
+        cat = Catalog(generated_at="t", source_root="/a", roots={"htcf": "/a", "ris": "/b"})
+        d = cat.to_dict()
+        assert d["source_root"] == "/a"
+        assert d["roots"] == {"htcf": "/a", "ris": "/b"}
+
+    def test_roots_default_empty(self):
+        from catalog_schema import Catalog
+
+        assert Catalog(generated_at="t", source_root="/a").to_dict()["roots"] == {}

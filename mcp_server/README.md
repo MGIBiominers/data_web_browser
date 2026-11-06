@@ -16,6 +16,14 @@ session running on HTCF), not a way to fetch the data through this server
 itself. There is no presigning, no S3 download URLs, and no manifest
 files anymore.
 
+## Data locations (HTCF and RIS)
+
+`get_data_locations`, `build_cohort` and `get_study_overview` return the
+absolute processed-data path on both HTCF and RIS. The roots come from
+`catalog["roots"]` (see `locations.py`); the layout below each root is
+identical, so a Claude Code session should use the path for the system it
+runs on.
+
 ## Local development
 
 ```bash

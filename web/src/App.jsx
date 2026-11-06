@@ -93,7 +93,7 @@ export default function App() {
       <StudyDetail
         study={selected}
         samples={samples}
-        sourceRoot={catalog.source_root}
+        roots={catalog.roots || (catalog.source_root ? { htcf: catalog.source_root } : null)}
         onClose={() => setSelectedId(null)}
       />
     </div>

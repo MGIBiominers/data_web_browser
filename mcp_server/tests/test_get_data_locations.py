@@ -5,6 +5,10 @@ from get_data_locations import get_data_locations
 
 _CATALOG = {
     "source_root": "/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS",
+    "roots": {
+        "htcf": "/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS",
+        "ris": "/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS",
+    },
     "studies": [
         {
             "study_id": "Zelic2025_Immunity",
@@ -29,6 +33,28 @@ class TestGetDataLocations:
             "/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS"
             "/studies/Zelic2025_Immunity/processed/"
         )
+
+    @patch('get_data_locations.get_catalog', return_value=_CATALOG)
+    def test_returns_absolute_directory_on_both_systems(self, mock_catalog):
+        result = get_data_locations(["Zelic2025_Immunity"])
+        dirs = result.structured_content["studies"][0]["directories"]
+        assert dirs["htcf"] == (
+            "/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS"
+            "/studies/Zelic2025_Immunity/processed/"
+        )
+        assert dirs["ris"] == (
+            "/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS"
+            "/studies/Zelic2025_Immunity/processed/"
+        )
+        assert all(d.startswith("/") for d in dirs.values())
+        assert result.structured_content["roots"] == _CATALOG["roots"]
+
+    @patch('get_data_locations.get_catalog', return_value={k: v for k, v in _CATALOG.items() if k != "roots"})
+    def test_catalog_without_roots_falls_back_to_defaults(self, mock_catalog):
+        result = get_data_locations(["Zelic2025_Immunity"])
+        dirs = result.structured_content["studies"][0]["directories"]
+        assert dirs["htcf"].startswith("/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS/")
+        assert dirs["ris"].startswith("/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS/")
 
     @patch('get_data_locations.get_catalog', return_value=_CATALOG)
     def test_only_data_category_files_listed(self, mock_catalog):
@@ -82,7 +108,7 @@ class TestGetDataLocations:
     def test_summary_reflects_counts(self, mock_catalog):
         result = get_data_locations(["Zelic2025_Immunity", "NoDataYet"])
         assert result.content[0].text.startswith(
-            "HTCF processed-data location(s) for 1 of 2 requested studies."
+            "HTCF and RIS processed-data location(s) for 1 of 2 requested studies."
         )
 
     @patch('get_data_locations.get_catalog', return_value=_CATALOG)

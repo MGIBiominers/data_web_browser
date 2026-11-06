@@ -14,7 +14,7 @@ function formatBytes(bytes) {
   return `${n.toFixed(1)} ${units[i]}`
 }
 
-export default function StudyDetail({ study, samples, sourceRoot, onClose }) {
+export default function StudyDetail({ study, samples, roots, onClose }) {
   const [copied, setCopied] = useState(false)
 
   if (!study) return null
@@ -22,7 +22,7 @@ export default function StudyDetail({ study, samples, sourceRoot, onClose }) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(buildStudyContext(study, sourceRoot))
+      await navigator.clipboard.writeText(buildStudyContext(study, roots))
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {

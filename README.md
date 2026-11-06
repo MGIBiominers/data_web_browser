@@ -1,9 +1,23 @@
 # ALS Dataset Browser (data_web_browser)
 
 Searchable web browser over the ALS pipeline's dataset collection at
-`/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS`, plus the pipeline
+`/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS` (mirrored on RIS), plus the pipeline
 that publishes processed data + metadata to S3. See `DESIGN.md` for the
 full architecture and file-by-file guide.
+
+## Where the data lives
+
+The same tree exists on two systems with an identical layout below the root.
+Use the root for the system you are on:
+
+| System | Absolute root |
+|---|---|
+| HTCF | `/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS` |
+| RIS (Compute2 / Storage3) | `/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS` |
+
+A study's processed files are at `<root>/studies/<study_id>/processed/`.
+`catalog.json` carries both roots (`roots`), and the MCP server and the
+browser's "Copy information for Claude" button return the path on each.
 
 ## Quickstart
 
@@ -24,6 +38,7 @@ $PY build_catalog.py --root $ROOT --coordination-root $COORD --out-dir /tmp/dwb_
 ```
 
 Writes `catalog.json`, `samples.json`, `last_updated.json` to `/tmp/dwb_out`.
+Add `--ris-root <path>` if the RIS root ever differs from the default.
 
 ### Preview what would be synced to S3 (dry run, no AWS calls)
 

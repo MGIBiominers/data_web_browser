@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import sources
-from catalog_schema import Catalog, ProcessedFile, RolePhase, SampleRecord, StudyRecord
+from catalog_schema import RIS_ROOT, Catalog, ProcessedFile, RolePhase, SampleRecord, StudyRecord
 
 try:
     import boto3
@@ -89,6 +89,7 @@ def build(
     coordination_root: Path,
     bucket: str | None = None,
     region: str | None = None,
+    ris_root: str = RIS_ROOT,
 ) -> Catalog:
     studies_tsv = sources.load_studies_tsv(root)
     all_samples = sources.load_all_samples(root)
@@ -256,7 +257,12 @@ def build(
         )
 
     studies.sort(key=lambda s: s.study_id)
-    return Catalog(generated_at=_now_iso(), source_root=str(root), studies=studies)
+    return Catalog(
+        generated_at=_now_iso(),
+        source_root=str(root),
+        studies=studies,
+        roots={"htcf": str(root), "ris": ris_root},
+    )
 
 
 def build_sample_records(root: Path) -> list[SampleRecord]:
@@ -315,11 +321,12 @@ def main() -> None:
     parser.add_argument("--out-dir", required=True, type=Path)
     parser.add_argument("--bucket", default=None, help="If set, fold in live S3 state")
     parser.add_argument("--region", default=None)
+    parser.add_argument("--ris-root", default=RIS_ROOT, help="Absolute path of the same collection on RIS")
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    catalog = build(args.root, args.coordination_root, bucket=args.bucket, region=args.region)
+    catalog = build(args.root, args.coordination_root, bucket=args.bucket, region=args.region, ris_root=args.ris_root)
     (args.out_dir / "catalog.json").write_text(json.dumps(catalog.to_dict(), indent=2))
 
     samples = build_sample_records(args.root)

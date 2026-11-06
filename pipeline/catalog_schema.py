@@ -123,15 +123,24 @@ class SampleRecord:
         return asdict(self)
 
 
+# Absolute path of the same EXTERNAL_DATASETS tree on RIS (Storage3); the layout
+# below it matches the HTCF root exactly.
+RIS_ROOT = "/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS"
+
+
 @dataclass
 class Catalog:
     generated_at: str
     source_root: str
     studies: list[StudyRecord] = field(default_factory=list)
+    # Absolute root of the collection per system, e.g. {"htcf": ..., "ris": ...}.
+    # source_root stays as the HTCF root for older consumers.
+    roots: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
             "generated_at": self.generated_at,
             "source_root": self.source_root,
+            "roots": self.roots,
             "studies": [s.to_dict() for s in self.studies],
         }

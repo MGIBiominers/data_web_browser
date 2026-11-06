@@ -45,7 +45,7 @@ def search_studies(
         available_externally is a separate, narrower signal about this
         collection's own public S3 mirror, NOT about whether
         get_data_locations will work -- get_data_locations reads a study's
-        real HTCF location directly, independent of whether it's ever been
+        real HTCF/RIS locations directly, independent of whether it's ever been
         mirrored to S3, so a non-empty data_formats is what actually
         predicts whether get_data_locations has something to return.
         Attached resource links point to the format-structure reference(s)

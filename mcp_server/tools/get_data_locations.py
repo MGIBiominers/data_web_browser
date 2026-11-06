@@ -1,4 +1,4 @@
-"""get_data_locations: real HTCF filesystem paths for processed data files, across one or more studies."""
+"""get_data_locations: real HTCF and RIS filesystem paths for processed data files, across one or more studies."""
 from __future__ import annotations
 
 from mcp.types import CallToolResult
@@ -6,6 +6,7 @@ from mcp.types import CallToolResult
 import resource_links as rl
 from catalog_cache import get_catalog
 from format import format_label
+from locations import get_roots, processed_dirs, roots_note
 from tool_response import build_result
 
 # Replaces the old get_download_links (removed 2026-09-18) -- this server no
@@ -26,10 +27,12 @@ from tool_response import build_result
 
 
 def get_data_locations(study_ids: list[str], formats: list[str] | None = None) -> CallToolResult:
-    """Get the real HTCF filesystem location of processed data files for one
-    or more studies. This does NOT download or transfer any file -- it
-    tells you where the data already lives on HTCF so you (or a Claude Code
-    session with HTCF access) can read/copy it directly from there.
+    """Get the real filesystem location of processed data files for one or
+    more studies, on both HTCF and RIS. This does NOT download or transfer
+    any file -- it tells you where the data already lives so you (or a
+    Claude Code session with HTCF or RIS access) can read/copy it directly
+    from there. The layout is identical on both systems; use the path for
+    the system you are on.
 
     Pass every study_id you want at once rather than calling repeatedly.
 
@@ -39,16 +42,18 @@ def get_data_locations(study_ids: list[str], formats: list[str] | None = None) -
             present in the same study. Omit to get every eligible file.
 
     Returns:
-        {"studies": [{study_id, directory, files: [{filename, format,
-        bytes}, ...]}, ...], "excluded": [{study_id, status}]}. "directory"
-        is the real HTCF path (`<source_root>/studies/<study_id>/processed/`).
+        {"roots": {"htcf", "ris"}, "note", "studies": [{study_id,
+        directories: {"htcf", "ris"}, directory, files: [{filename, format,
+        bytes}, ...]}, ...], "excluded": [{study_id, status}]}. Each entry
+        of "directories" is an absolute `<root>/studies/<study_id>/processed/`
+        path on that system; "directory" is the HTCF one (kept for older callers).
         A requested study_id lands in "excluded" (status="not_found" or
         "no_processed_data") rather than in "studies" if it doesn't exist or
         has no matching processed files yet. Attaches resource links to the
         format-structure reference(s) for whichever formats are present.
     """
     catalog = get_catalog()
-    source_root = catalog["source_root"]
+    roots = get_roots(catalog)
     by_id = {s["study_id"]: s for s in catalog["studies"]}
 
     results: list[dict] = []
@@ -75,12 +80,18 @@ def get_data_locations(study_ids: list[str], formats: list[str] | None = None) -
             excluded.append({"study_id": study_id, "status": "no_processed_data"})
             continue
 
+        dirs = processed_dirs(roots, study_id)
         results.append({
             "study_id": study_id,
-            "directory": f"{source_root}/studies/{study_id}/processed/",
+            "directories": dirs,
+            "directory": dirs["htcf"],
             "files": files,
         })
 
     links = rl.for_formats(all_formats)
-    summary = f"HTCF processed-data location(s) for {len(results)} of {len(study_ids)} requested studies."
-    return build_result(summary, {"studies": results, "excluded": excluded}, extra_content=links)
+    summary = f"HTCF and RIS processed-data location(s) for {len(results)} of {len(study_ids)} requested studies."
+    return build_result(
+        summary,
+        {"roots": roots, "note": roots_note(roots), "studies": results, "excluded": excluded},
+        extra_content=links,
+    )

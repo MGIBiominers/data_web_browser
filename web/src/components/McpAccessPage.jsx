@@ -33,7 +33,7 @@ export default function McpAccessPage({ onBack }) {
         This collection also has an MCP (Model Context Protocol) server --
         the same search/lookup tools this browser uses, available directly
         inside a Claude conversation. It doesn't transfer any file: it can
-        only tell you where a study's processed data already lives on HTCF,
+        only tell you where a study's processed data already lives (on HTCF and on RIS),
         not hand you a copy of it.
       </p>
 

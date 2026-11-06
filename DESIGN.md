@@ -3,7 +3,9 @@
 ## What this is
 
 A searchable web browser over the ALS pipeline's raw/processed dataset
-collection (`/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS`), plus
+collection (`/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS` on HTCF,
+mirrored at `/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS` on RIS --
+see "Dual-root paths" below), plus
 the S3 publish pipeline that feeds it. Built 2026-09-05.
 
 **Deliberately standalone.** This project has no connection to, dependency
@@ -1258,6 +1260,47 @@ also case-insensitive. 10 new tests added across `test_sample_filters.py`
 (new), `test_search_samples.py`, and `test_build_cohort.py`; one existing
 `search_samples` test asserting the old case-sensitive behavior was
 inverted rather than deleted, since that behavior was the bug.
+
+## Dual-root paths: HTCF + RIS (2026-11-06)
+
+The EXTERNAL_DATASETS collection now lives in two places with an identical
+layout below the root, so every path a user or Claude Code session needs is
+`<root>/<relative path>` and only the root differs:
+
+| System | Absolute root |
+|---|---|
+| HTCF (login node only; `/lts` is not mounted on compute nodes) | `/lts/rmlab/rmlab_shared3/BioMiners/EXTERNAL_DATASETS` |
+| RIS (Compute2 / Storage3, allocation `rmitra-cajal`) | `/storage3/fs1/rmitra-cajal/Active/EXTERNAL_DATASETS` |
+
+The RIS copy was transferred from HTCF with Globus (RIS Storage Platforms
+collection, 2026-11-05). Note the source is about 4.7 TB on disk but about
+28 TB by apparent file size, so check quota/space before re-syncing.
+
+What changed:
+
+- `catalog.json` gains `roots: {"htcf": ..., "ris": ...}`. `source_root`
+  stays (the HTCF root) so older consumers keep working.
+  `pipeline/build_catalog.py` writes both; `--ris-root` overrides the RIS
+  default (`RIS_ROOT` in `pipeline/catalog_schema.py`).
+- `mcp_server/locations.py` is the one place that turns roots plus a study
+  id into absolute paths (`get_roots`, `processed_dirs`, `roots_note`). A
+  catalog built before `roots` existed falls back to `source_root` plus the
+  default RIS root, so nothing breaks before the next rebuild.
+- `get_data_locations` and `build_cohort` return `directories: {htcf, ris}`
+  per study, plus top-level `roots` and a `note` telling the caller to use
+  the root for the system it is on. `directory` is kept as the HTCF path.
+  `get_study_overview` returns `htcf_processed_path` and `ris_processed_path`
+  (the hardcoded `HTCF_STUDIES_ROOT` constant is gone).
+- The web app's "Copy information for Claude" button
+  (`web/src/copyContext.js`) prints the processed-data directory on every
+  system in `catalog.roots`, so the pasted context works in a Claude Code
+  session on HTCF or on RIS.
+- Tests: `mcp_server/tests/test_locations.py` and new cases in
+  `test_get_data_locations.py`.
+
+Still true: no file contents are served. The tools only say where data
+lives; real access is gated by each system's own permissions (an
+`compute-*` AD group plus `storage3-rmitra-cajal-rw` on RIS).
 
 ## Not yet done
 

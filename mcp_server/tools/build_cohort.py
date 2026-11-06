@@ -6,6 +6,7 @@ from mcp.types import CallToolResult
 import resource_links as rl
 from catalog_cache import get_catalog, get_samples
 from format import format_label
+from locations import get_roots, processed_dirs, roots_note
 from sample_filters import matches
 from tool_response import build_result
 
@@ -60,8 +61,9 @@ def build_cohort(
         {"total_matched_samples": int, "cohort": [{study_id, directory,
         sample_ids, files: [{filename, format, bytes}, ...]}, ...],
         "excluded_studies": [{study_id, status, sample_count}]}.
-        "directory" is the real HTCF path
-        (`<source_root>/studies/<study_id>/processed/`). A study whose
+        "directories" gives the absolute path on
+        each system ("htcf", "ris") -- `<root>/studies/<study_id>/processed/`
+        -- and "directory" is the HTCF one (kept for older callers). A study whose
         matched samples have no processed data file yet lands in
         "excluded_studies" (status="no_processed_data") rather than
         "cohort". Attaches resource links to the format-structure
@@ -86,7 +88,7 @@ def build_cohort(
             sample_ids_by_study.setdefault(s["study_id"], []).append(sid)
 
     catalog = get_catalog()
-    source_root = catalog["source_root"]
+    roots = get_roots(catalog)
     by_id = {s["study_id"]: s for s in catalog["studies"]}
 
     cohort: list[dict] = []
@@ -108,9 +110,11 @@ def build_cohort(
             files.append({"filename": f["name"], "format": fmt, "bytes": f["bytes"]})
             all_formats.add(fmt)
 
+        dirs = processed_dirs(roots, sid)
         cohort.append({
             "study_id": sid,
-            "directory": f"{source_root}/studies/{sid}/processed/",
+            "directories": dirs,
+            "directory": dirs["htcf"],
             "sample_ids": sorted(sample_ids),
             "files": files,
         })
@@ -119,6 +123,8 @@ def build_cohort(
     links = rl.for_formats(all_formats)
     result = {
         "total_matched_samples": len(matched),
+        "roots": roots,
+        "note": roots_note(roots),
         "cohort": cohort,
         "excluded_studies": excluded_studies,
     }
